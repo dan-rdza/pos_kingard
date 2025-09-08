@@ -192,14 +192,23 @@ class LoginFrame(ctk.CTkFrame):
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("POS KinGard")
-        self.geometry("400x550")
-        self.minsize(400, 550)        
-                        
+        self.title("POS KinGard")    
+
+        self.development_mode = True             
+
         # Inicializar base de datos
         self.db = Database()
         self.current_user = None
         
+        # Tamaños para diferentes vistas
+        self.window_sizes = {
+            "login": ("400x550", (400, 500)),
+            "menu": ("600x550", (600, 550)),
+            "students": ("600x550", (600, 550)),  # Más grande para estudiantes
+            "payments": ("1000x650", (800, 550)),
+            "reports": ("1000x600", (800, 500))
+        }
+
         # Mostrar login
         self.show_login()
         self.after(100, self.center_window)
@@ -213,21 +222,43 @@ class App(ctk.CTk):
         self.geometry(f"{width}x{height}+{x}+{y}")
     
     def show_login(self):
+        """Mostrar login con tamaño configurado"""
+        print("=== SHOW LOGIN CALLED ===")
+        
+        # Destruir todos los widgets actuales
         for widget in self.winfo_children():
             widget.destroy()
-            
+        
+        # Configurar tamaño ANTES de crear el login frame
+        self.set_window_size("login")
+        print(f"Window size set to: {self.geometry()}")
+        
+        # Crear y mostrar el frame de login
         self.login_frame = LoginFrame(self)
         self.login_frame.pack(expand=True, fill="both")
+        
+        # Forzar actualización y centrado
+        self.update_idletasks()
+        self.center_window()
 
     def show_main_menu(self):
         """Mostrar menú principal después del login"""
         for widget in self.winfo_children():
             widget.destroy()
-            
+        
+        self.set_window_size("menu")
+
         self.menu_frame = MainMenu(self, self.current_user)
         self.menu_frame.pack(expand=True, fill="both")  
 
         self.after(100, self.center_window)      
+
+    def set_window_size(self, view_name):
+        """Configurar tamaño de ventana según la vista"""
+        size, min_size = self.window_sizes.get(view_name, ("800x600", (600, 500)))
+        self.geometry(size)
+        self.minsize(*min_size)
+        return True
 
 if __name__ == "__main__":
     app = App()

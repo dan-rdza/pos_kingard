@@ -1,5 +1,8 @@
 import customtkinter as ctk
 from tkinter import messagebox
+import tkinter as tk
+from tkcalendar import DateEntry
+from datetime import datetime
 from models.student import Student
 from repositories.student_repo import StudentRepository
 
@@ -10,52 +13,49 @@ class StudentsFrame(ctk.CTkFrame):
         self.db_connection = db_connection
         self.repo = StudentRepository(db_connection)
         self.current_student = None
-        
+
         self.create_widgets()
         self.load_students()
-    
-    def create_widgets(self):
-        # Header con botón de regreso
-        header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        header_frame.pack(fill="x", padx=(10,10), pady=(0, 20))
         
-        # Botón de regreso a la izquierda
+    def create_widgets(self):
+
+        title_frame = ctk.CTkFrame(self, fg_color='transparent', border_width = 1   )
+        title_frame.pack(fill='x', padx=(10,10), pady=(15, 15), )
+
+        # Título principal arriba
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text="👥 Gestión de Alumnos",
+            font=ctk.CTkFont(size=22, weight="bold")
+        )
+        title_label.pack(pady=(15, 15))
+
+        # Botones de acciones
+        action_bar = ctk.CTkFrame(self, fg_color="transparent")
+        action_bar.pack(fill="x", padx=(10, 10), pady=(15, 15))
+
         ctk.CTkButton(
-            header_frame,
+            action_bar,
             text="← Volver al Menú",
             command=self.go_back_to_menu,
             height=35,
-            width=120,
+            width=140,
             fg_color="gray50",
             hover_color="gray40"
         ).pack(side="left")
-        
-        # Título centrado
-        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        title_frame.pack(side="left", expand=True, fill="x", padx=20)
-        
-        ctk.CTkLabel(
-            title_frame,
-            text="👥 Gestión de Alumnos",
-            font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(anchor="center")
-        
-        # Botones de acción a la derecha
-        action_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        action_frame.pack(side="right")
-        
+
         ctk.CTkButton(
-            action_frame,
+            action_bar,
             text="➕ Nuevo Alumno",
             command=self.show_new_form,
             height=35,
             fg_color="#2CC985",
             hover_color="#207A4C"
-        ).pack(side="left", padx=(0, 10))
+        ).pack(side="right")        
         
         # Búsqueda
         search_frame = ctk.CTkFrame(self, fg_color="transparent")
-        search_frame.pack(fill="x", pady=(0, 20))
+        search_frame.pack(fill="x", padx=(10, 10), pady=(10, 20))
         
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(
@@ -68,7 +68,7 @@ class StudentsFrame(ctk.CTkFrame):
         self.search_entry.bind("<KeyRelease>", self.on_search)
         
         ctk.CTkButton(
-            search_frame,
+            search_frame, 
             text="🔍 Buscar",
             command=self.on_search,
             height=40,
@@ -82,74 +82,69 @@ class StudentsFrame(ctk.CTkFrame):
         # Formulario (oculto inicialmente)
         self.form_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.create_form_widgets()
-    
+       
+
     def create_form_widgets(self):
-        # Formulario de creación/edición
-        form = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        form.pack(fill="both", expand=True, padx=50, pady=20)
+        # Formulario de creación/edición        
+        form = ctk.CTkScrollableFrame(self.form_frame, fg_color="transparent")
+        form.pack(fill="both", expand=True, padx=10, pady=20)
+
+        # Configurar grid con una sola columna
+        form.grid_columnconfigure(0, weight=1)
         
-        # Dos columnas
-        left_col = ctk.CTkFrame(form, fg_color="transparent")
-        left_col.pack(side="left", fill="both", expand=True, padx=(0, 20))
+        # Lista de campos en el orden deseado
+        fields = [
+            ("Matrícula *", "enrollment_entry", "entry", ""),
+            ("Nombre *", "first_name_entry", "entry", ""),
+            ("Apellido", "second_name_entry", "entry", ""),
+            ("CURP", "curp_entry", "entry", ""),
+            ("Género", "gender_var", "combobox", ["", "M", "F"]),
+            ("Fecha Nacimiento", "birth_date_entry", "entry", "YYYY-MM-DD"),
+            ("Referencia Pago", "pay_ref_entry", "entry", ""),
+            ("Dirección", "address_entry", "entry", "")
+        ]
         
-        right_col = ctk.CTkFrame(form, fg_color="transparent")
-        right_col.pack(side="right", fill="both", expand=True)
+        for i, (label_text, attr_name, field_type, options) in enumerate(fields):
+            # Label
+            label = ctk.CTkLabel(form, text=label_text, font=ctk.CTkFont(weight="bold"))
+            label.grid(row=i*2, column=0, sticky="w", pady=(10 if i == 0 else 0, 5))
+            
+            # Field
+            if field_type == "combobox":
+                var = ctk.StringVar(value="")
+                field = ctk.CTkComboBox(form, values=options, variable=var, height=40)
+                setattr(self, attr_name, var)
+            else:
+                field = ctk.CTkEntry(form, height=40, placeholder_text=options)
+                setattr(self, attr_name, field)
+            
+            field.grid(row=i*2 + 1, column=0, sticky="ew", pady=(0, 10))
         
-        # Campos izquierda
-        ctk.CTkLabel(left_col, text="Matrícula *", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.enrollment_entry = ctk.CTkEntry(left_col, height=40)
-        self.enrollment_entry.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(left_col, text="Nombre *", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.first_name_entry = ctk.CTkEntry(left_col, height=40)
-        self.first_name_entry.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(left_col, text="Apellido", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.second_name_entry = ctk.CTkEntry(left_col, height=40)
-        self.second_name_entry.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(left_col, text="CURP", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.curp_entry = ctk.CTkEntry(left_col, height=40)
-        self.curp_entry.pack(fill="x", pady=(0, 15))
-        
-        # Campos derecha
-        ctk.CTkLabel(right_col, text="Género", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.gender_var = ctk.StringVar(value="")
-        gender_combo = ctk.CTkComboBox(right_col, values=["", "M", "F"], variable=self.gender_var, height=40)
-        gender_combo.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(right_col, text="Fecha Nacimiento", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.birth_date_entry = ctk.CTkEntry(right_col, height=40, placeholder_text="YYYY-MM-DD")
-        self.birth_date_entry.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(right_col, text="Referencia Pago", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.pay_ref_entry = ctk.CTkEntry(right_col, height=40)
-        self.pay_ref_entry.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(right_col, text="Dirección", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 5))
-        self.address_entry = ctk.CTkEntry(right_col, height=40)
-        self.address_entry.pack(fill="x", pady=(0, 20))
-        
-        # Botones formulario
+        # Botones
         btn_frame = ctk.CTkFrame(form, fg_color="transparent")
-        btn_frame.pack(fill="x", pady=(20, 0))
+        btn_frame.grid(row=len(fields)*2, column=0, sticky="ew", pady=(20, 0))
         
-        ctk.CTkButton(
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=0)
+        
+        cancel_btn = ctk.CTkButton(
             btn_frame,
             text="↩️ Cancelar",
             command=self.hide_form,
             height=40,
             fg_color="gray50"
-        ).pack(side="left", padx=(0, 10))
+        )
+        cancel_btn.grid(row=0, column=0, sticky="w", padx=(0, 10))
         
-        ctk.CTkButton(
+        save_btn = ctk.CTkButton(
             btn_frame,
             text="💾 Guardar Alumno",
             command=self.save_student,
             height=40,
             fg_color="#2CC985"
-        ).pack(side="right")
-    
+        )
+        save_btn.grid(row=0, column=1, sticky="e")
+        
     def load_students(self):
         # Limpiar lista actual
         for widget in self.list_frame.winfo_children():
@@ -172,10 +167,18 @@ class StudentsFrame(ctk.CTkFrame):
     
     def go_back_to_menu(self):
         """Regresar al menú principal"""
-        from ui.menu import MainMenu
         # Limpiar ventana actual
         for widget in self.parent.winfo_children():
             widget.destroy()
+        
+        # Acceder a la ventana principal (App) correctamente
+        main_app = self.parent.master if hasattr(self.parent, 'master') else self.parent
+        if hasattr(main_app, 'set_window_size'):
+            main_app.set_window_size("menu")
+        
+        # Importar después de configurar tamaño
+        from ui.menu import MainMenu
+        
         # Mostrar menú principal
         menu_frame = MainMenu(self.parent, self.parent.current_user)
         menu_frame.pack(fill="both", expand=True)
@@ -237,21 +240,28 @@ class StudentsFrame(ctk.CTkFrame):
         self.load_students()
     
     def clear_form(self):
+        # Limpiar entries
         self.enrollment_entry.delete(0, ctk.END)
         self.first_name_entry.delete(0, ctk.END)
         self.second_name_entry.delete(0, ctk.END)
         self.curp_entry.delete(0, ctk.END)
-        self.gender_var.set("")
         self.birth_date_entry.delete(0, ctk.END)
         self.pay_ref_entry.delete(0, ctk.END)
         self.address_entry.delete(0, ctk.END)
+        
+        # Limpiar combobox
+        self.gender_var.set("")
     
     def edit_student(self, student):
         self.current_student = student
-        self.fill_form(student)
+        print(self.current_student)
         self.show_new_form()
+        self.fill_form(student)
+        
     
     def fill_form(self, student):
+        self.clear_form()
+
         self.enrollment_entry.insert(0, student.enrollment)
         self.first_name_entry.insert(0, student.first_name)
         if student.second_name:
