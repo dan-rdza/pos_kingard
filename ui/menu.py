@@ -81,7 +81,13 @@ class MainMenu(ctk.CTkFrame):
         students_frame.pack(fill="both", expand=True)
     
     def open_products(self):
-        print("Abriendo módulo de productos...")
+        # limpiar
+        for w in self.parent.winfo_children(): w.destroy()
+        main_app = self.parent.master if hasattr(self.parent,'master') else self.parent
+        if hasattr(main_app,'set_window_size'): main_app.set_window_size("payments")  # o crea clave "products" si prefieres
+        from ui.products import ProductsFrame
+        ProductsFrame(self.parent, self.parent.db.get_connection()).pack(fill="both", expand=True)
+
     
     def open_sales(self):
         print("Abriendo punto de venta...")
