@@ -8,11 +8,13 @@ sistema_jardin/
 │   ├── customer.py         # Modelo de alumnos
 │   ├── product.py          # Modelo de productos
 │   ├── sale.py             # Modelo de ventas
+│   ├── tutor.py            # Modelo de tutores
 │   └── user.py             # Modelo de usuarios
 │
 ├── repositories/           # Capa de acceso a datos (SQL)
 │   ├── __init__.py
 │   ├── customer_repo.py    # Consultas de alumnos
+│   ├── tutor_repo.py       # Consultas de tutores
 │   ├── product_repo.py     # Consultas de productos
 │   ├── sale_repo.py        # Consultas de ventas
 │   └── user_repo.py        # Consultas de usuarios
@@ -25,16 +27,11 @@ sistema_jardin/
 │
 ├── ui/                     # Interfaces gráficas
 │   ├── __init__.py
-│   ├── components/         # Componentes reutilizables
-│   │   ├── header.py       # Encabezado común
-│   │   ├── sidebar.py      # Menú lateral
-│   │   └── dialogs.py      # Diálogos modales
-│   │
-│   ├── frames/             # Pantallas principales
-│   │   ├── login_frame.py  # Pantalla de login
-│   │   ├── sales_frame.py  # Pantalla de ventas
-│   │   ├── customers_frame.py # Gestión de alumnos
-│   │   └── reports_frame.py # Reportes
+│   ├── menu.py         # Pantalla de menu
+│   ├── students.py     # Gestión de estudiantes
+│   ├── tutors.py       # Gestión de tutores
+│   ├── sales.py        # Gestión de ventas
+│   ├── reports.py      # Reportes
 │   │
 │   └── themes/             # Configuración de estilos
 │       ├ __init__.py

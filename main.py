@@ -204,9 +204,9 @@ class App(ctk.CTk):
         self.window_sizes = {
             "login": ("400x550", (400, 500)),
             "menu": ("600x550", (600, 550)),
-            "students": ("600x550", (600, 550)),  # Más grande para estudiantes
-            "payments": ("1000x650", (800, 550)),
-            "reports": ("1000x600", (800, 500))
+            "students": ("900x550", (900, 550)),  # Más grande para estudiantes
+            "payments": ("900x550", (900, 550)),
+            "reports": ("900x550", (900, 500))
         }
 
         # Mostrar login
