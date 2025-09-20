@@ -26,7 +26,7 @@ class StudentsFrame(ctk.CTkFrame):
         title_label = ctk.CTkLabel(
             self.title_frame,
             text="👥 Gestión de Alumnos",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=ctk.CTkFont(size=22, weight="bold")
         ).pack(side="left")
 
         ctk.CTkButton(
@@ -43,18 +43,25 @@ class StudentsFrame(ctk.CTkFrame):
             height=35, fg_color="#2CC985", hover_color="#207A4C"
         ).pack(side="right")
 
-        # Búsqueda
-        self.search_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.search_frame.pack(fill="x", padx=(10, 10), pady=(10, 20))
+        # Contenedor ancho completo
+        search_container = ctk.CTkFrame(self, fg_color="transparent")
+        search_container.pack(fill="x", padx=(10, 10), pady=(10, 20))
+
+        # Frame con 60% de ancho dentro del contenedor
+        frame_width = int(self.winfo_screenwidth() * 0.6)
+
+        self.search_frame = ctk.CTkFrame(search_container, fg_color="transparent", width=frame_width)
+        self.search_frame.pack(anchor="w")  # "w" izquierda, "center" centro, "e" derecha
 
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(
             self.search_frame,
             placeholder_text="Buscar por nombre o matrícula...",
             textvariable=self.search_var,
-            height=40
+            height=40,
+            width=int(frame_width * 0.5)
         )
-        self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.search_entry.pack(side="left", fill="x", padx=(0, 10))
         self.search_entry.bind("<KeyRelease>", self.on_search)
 
         ctk.CTkButton(
@@ -209,7 +216,7 @@ class StudentsFrame(ctk.CTkFrame):
             action_frame, 
             text="👥 Tutores",
             command=lambda s=student: self.manage_tutors(s),
-            height=30, width=80, fg_color="#3B82F6"
+            height=30, width=80, fg_color="#2b3d78"
         ).pack(side="right", padx=(5, 0))
 
     def show_new_form(self):

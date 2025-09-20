@@ -16,13 +16,13 @@ class MainMenu(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text=f"👤 {self.user['first_name']} {self.user['second_name']}",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=18, weight="bold")
         ).pack()
 
         ctk.CTkLabel(
             header,
             text=f"Rol: {self.user['role'].capitalize()}",
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(size=13),
             text_color="gray70"
         ).pack()
 
@@ -30,14 +30,20 @@ class MainMenu(ctk.CTkFrame):
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.pack(expand=True)
 
-        wrapper = ctk.CTkFrame(content, fg_color="transparent", width=700)
-        wrapper.pack(pady=10)
-        wrapper.grid_columnconfigure((0, 1), weight=1)
+        wrapper = ctk.CTkFrame(content, fg_color="transparent", width=800)
+        wrapper.pack(pady=12)
+        wrapper.grid_columnconfigure((0, 1), weight=1, minsize = 220)
         wrapper.grid_rowconfigure((0, 1, 2), weight=1)
 
         # Altura de botón adaptativa
         screen_h = self.winfo_screenheight()
-        button_height = 120 if screen_h < 800 else 100
+        base_height = 120 if screen_h < 800 else 100
+        base_width = 180
+
+        # Tamaño de los botones
+        button_height = int(base_height * 1.2)        
+        button_width = int(base_width * 1.5)
+     
         
         # Botones del menú
         buttons = [
@@ -58,9 +64,11 @@ class MainMenu(ctk.CTkFrame):
                 text=f"{icon}\n{text}",
                 command=command,
                 height=button_height,
-                corner_radius=12,
-                font=ctk.CTkFont(size=14, weight="bold"),
+                width=button_width,
+                corner_radius=14,
+                font=ctk.CTkFont(size=16, weight="bold"),
                 fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray40"),
+                # hover_color=("gray60", "gray40"),
+                hover_color=("#2b3d78", "#0f2057"),                
                 text_color="white"
             ).pack(expand=True, fill="both")
