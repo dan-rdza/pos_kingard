@@ -161,7 +161,8 @@ CREATE TABLE IF NOT EXISTS products (
   category_id INTEGER REFERENCES categories(id),
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  is_pos_shortcut BOOLEAN DEFAULT FALSE
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_products_updated

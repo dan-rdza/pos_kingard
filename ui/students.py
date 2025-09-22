@@ -23,7 +23,7 @@ class StudentsFrame(ctk.CTkFrame):
         self.title_frame = ctk.CTkFrame(self, fg_color='transparent')
         self.title_frame.pack(fill='x', padx=(10, 10), pady=(15, 15))
 
-        title_label = ctk.CTkLabel(
+        ctk.CTkLabel(
             self.title_frame,
             text="👥 Gestión de Alumnos",
             font=ctk.CTkFont(size=22, weight="bold")

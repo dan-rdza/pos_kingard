@@ -13,6 +13,7 @@ class Product:
     tax_rate: float = 0.16
     category_id: Optional[int] = None
     active: bool = True
+    is_pos_shortcut: bool = False
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
