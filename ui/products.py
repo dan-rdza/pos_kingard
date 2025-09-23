@@ -1,9 +1,9 @@
 # ui/products.py
-from math import prod
 import customtkinter as ctk
 from tkinter import messagebox
 from models.product import Product
 from repositories.product_repo import ProductRepository
+
 
 class ProductsFrame(ctk.CTkFrame):
     def __init__(self, parent, db_connection):
@@ -17,26 +17,38 @@ class ProductsFrame(ctk.CTkFrame):
 
     def _create_widgets(self):
         # Header
-        self.header = ctk.CTkFrame(self, fg_color="transparent")
-        self.header.pack(fill="x", padx=10, pady=(15, 10))
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=10, pady=(15, 10))
 
         ctk.CTkLabel(
-            self.header, text="📦 Productos y Servicios",
+            header, text="📦 Productos y Servicios",
             font=ctk.CTkFont(size=20, weight="bold")
         ).pack(side="left")
 
         ctk.CTkButton(
-            self.header, text="⬅️ Volver", height=35,
+            header, text="⬅️ Volver", height=35,
             fg_color="gray50", command=self._back_to_menu
-        ).pack(side="right", padx=(10,0))
+        ).pack(side="right", padx=(10, 0))
 
         ctk.CTkButton(
-            self.header, text="➕ Nuevo", height=35,
+            header, text="➕ Nuevo", height=35,
             fg_color="#2CC985", command=self._show_form_new
         ).pack(side="right")
 
-        # Contenedor de búsqueda
-        search_container = ctk.CTkFrame(self, fg_color="transparent")
+        # Body con 2 paneles
+        self.body = ctk.CTkFrame(self, fg_color="transparent")
+        self.body.pack(fill="both", expand=True)
+
+        self.body.grid_columnconfigure(0, weight=2, uniform="col")
+        self.body.grid_columnconfigure(1, weight=1, uniform="col")
+        self.body.grid_rowconfigure(0, weight=1)
+
+        # Panel izquierdo (búsqueda + lista)
+        left_panel = ctk.CTkFrame(self.body, fg_color="transparent")
+        left_panel.grid(row=0, column=0, sticky="nsew")
+
+        # Búsqueda
+        search_container = ctk.CTkFrame(left_panel, fg_color="transparent")
         search_container.pack(fill="x", padx=(10, 10), pady=(10, 20))
 
         frame_width = int(self.winfo_screenwidth() * 0.6)
@@ -61,16 +73,34 @@ class ProductsFrame(ctk.CTkFrame):
         ).pack(side="right")
 
         # Lista
-        self.list_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.list_frame = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
         self.list_frame.pack(fill="both", expand=True)
 
-        # Form (oculto hasta crear/editar)
-        self.form_frame = ctk.CTkFrame(self, fg_color="transparent")
+        # Panel derecho (formulario/placeholder)
+        self.form_frame = ctk.CTkFrame(self.body, fg_color="transparent")
+        self.form_frame.grid(row=0, column=1, sticky="nsew")
+
+        self._show_placeholder()
+
+    def _show_placeholder(self):
+        self._clear_container(self.form_frame)
+        ph = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        ph.pack(expand=True, fill="both")
+        ctk.CTkLabel(
+            ph,
+            text="👈 Selecciona un producto o da clic en ➕ Nuevo",
+            font=ctk.CTkFont(size=14),
+            text_color="gray70"
+        ).pack(expand=True)
+
+    def _clear_container(self, container):
+        for w in container.winfo_children():
+            w.destroy()
 
     def _back_to_menu(self):
         for w in self.parent.winfo_children():
             w.destroy()
-        main_app = self.parent.master if hasattr(self.parent,'master') else self.parent
+        main_app = self.parent.master if hasattr(self.parent, 'master') else self.parent
         if hasattr(main_app, "set_window_size"):
             main_app.set_window_size("menu")
         from ui.menu import MainMenu
@@ -86,50 +116,55 @@ class ProductsFrame(ctk.CTkFrame):
             ctk.CTkLabel(self.list_frame, text="Sin productos", text_color="gray60").pack(pady=40)
             return
 
-        for p in items:
-            self._product_card(p)
+        self.list_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
+
+        for idx, p in enumerate(items):
+            row = idx // 2
+            col = idx % 2
+            card = self._product_card(p)
+            card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
     def _product_card(self, p: Product):
         card = ctk.CTkFrame(self.list_frame, corner_radius=10, border_width=1)
-        card.pack(fill="x", padx=8, pady=6)
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="x", padx=12, pady=10)
+        inner.pack(fill="both", expand=True, padx=12, pady=10)
 
         title = f"{p.sku} — {p.description}"
         if getattr(p, "is_pos_shortcut", False):
             title += "   📌 POS"
 
+        if getattr(p, "print_logo", False):
+            title += "   🖨️ Logo"            
+
         ctk.CTkLabel(inner, text=title, font=ctk.CTkFont(weight="bold")).pack(anchor="w")
         ctk.CTkLabel(
             inner,
-            text=f"💲 {p.price:.2f}  •  Impuesto: {int(p.tax_rate*100)}%  •  {p.unit}  •  {p.kind}",
+            text=f"💲 {p.price:.2f}  •  IVA {int(p.tax_rate*100)}%  •  {p.unit}  •  {p.kind}",
             text_color="gray70"
         ).pack(anchor="w", pady=(2, 8))
 
         actions = ctk.CTkFrame(inner, fg_color="transparent")
         actions.pack(fill="x")
 
-        if p.is_pos_shortcut:
-            text_shortcut = "📌 Desfijar"
-        else :
-            text_shortcut = "📌 Fijar"
-
+        text_shortcut = "📌 Desfijar" if p.is_pos_shortcut else "📌 Fijar"
         ctk.CTkButton(
-            actions, text=text_shortcut, height=30, width=90,
-            fg_color="#F59E0B", command=lambda is_pos_shortcut=p.is_pos_shortcut: self._toggle_shortcut(p)
-        ).pack(side="right", padx=(5,0))
+            actions, text=text_shortcut, height=28, width=90,
+            fg_color="#F59E0B", command=lambda: self._toggle_shortcut(p)
+        ).pack(side="right", padx=(5, 0))            
 
         ctk.CTkButton(
             actions, text="✏️ Editar", height=28, width=90,
             fg_color="gray40", command=lambda sku=p.sku: self._show_form_edit(sku)
-        ).pack(side="right", padx=(5,0))
+        ).pack(side="right", padx=(5, 0))
 
         ctk.CTkButton(
             actions, text=("Desactivar" if p.active else "Activar"), height=28, width=110,
             fg_color="#EF4444" if p.active else "#10B981",
             command=lambda sku=p.sku, active=p.active: self._toggle_active(sku, active)
-        ).pack(side="right", padx=(5,0))
+        ).pack(side="right", padx=(5, 0))
+
+        return card
 
     def _on_search(self, event=None):
         self._load_products(self.q_var.get().strip())
@@ -139,7 +174,15 @@ class ProductsFrame(ctk.CTkFrame):
             self.repo.toggle_shortcut(p.sku, p.is_pos_shortcut)
             self._load_products()
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo establecer como principal: {e}")        
+            messagebox.showerror("Error", f"No se pudo actualizar POS: {e}")
+
+
+    def _toggle_print_logo(self, p: Product):
+        try:
+            self.repo.toggle_print_logo(p.sku, p.print_logo)
+            self._load_products()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo actualizar POS: {e}")
 
     # -------- FORM --------
     def _show_form_new(self):
@@ -151,18 +194,24 @@ class ProductsFrame(ctk.CTkFrame):
         self._show_form(edit=True)
 
     def _show_form(self, edit: bool = False):
-        self.list_frame.pack_forget()
-        self.form_frame.pack(fill="both", expand=True)
-        for w in self.form_frame.winfo_children():
-            w.destroy()
+        self._clear_container(self.form_frame)
 
         form = ctk.CTkScrollableFrame(self.form_frame, fg_color="transparent")
         form.pack(fill="both", expand=True, padx=10, pady=20)
         form.grid_columnconfigure(0, weight=1)
 
-        def row(label, widget):
-            ctk.CTkLabel(form, text=label, font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(10,4))
-            widget.pack(fill="x")
+        title_text = "➕ Nuevo Producto" if not edit else "✏️ Editar Producto"
+        ctk.CTkLabel(form, text=title_text, font=ctk.CTkFont(size=20, weight="bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 10)
+        )
+
+        row = 1
+        def add_field(label, widget):
+            nonlocal row
+            ctk.CTkLabel(form, text=label, font=ctk.CTkFont(weight="bold")).grid(row=row, column=0, sticky="w", pady=(8, 2))
+            row += 1
+            widget.grid(row=row, column=0, sticky="ew", pady=(0, 5))
+            row += 1
 
         self.sku = ctk.StringVar()
         self.desc = ctk.StringVar()
@@ -171,38 +220,41 @@ class ProductsFrame(ctk.CTkFrame):
         self.unit = ctk.StringVar(value="pz")
         self.kind = ctk.StringVar(value="Servicio")
         self.tax = ctk.StringVar(value="0.16")
-        self.is_pos_shortcut = ctk.BooleanVar(value=False)  # ✅ ahora BooleanVar
+        self.is_pos_shortcut = ctk.BooleanVar(value=False)
+        self.print_logo = ctk.BooleanVar(value=False)
 
-        # Campos
         sku_e   = ctk.CTkEntry(form, textvariable=self.sku, height=40, placeholder_text="SKU (único)")
         desc_e  = ctk.CTkEntry(form, textvariable=self.desc, height=40, placeholder_text="Descripción")
         price_e = ctk.CTkEntry(form, textvariable=self.price, height=40, placeholder_text="Precio (ej. 150.00)")
-        cost_e  = ctk.CTkEntry(form, textvariable=self.cost,  height=40, placeholder_text="Costo (opcional)")
+        cost_e  = ctk.CTkEntry(form, textvariable=self.cost, height=40, placeholder_text="Costo (opcional)")
         unit_e  = ctk.CTkComboBox(form, values=["pz","serv","hr","mes"], height=40, variable=self.unit)
         kind_e  = ctk.CTkComboBox(form, values=["Servicio","Producto"], height=40, variable=self.kind)
         tax_e   = ctk.CTkComboBox(form, values=["0.00","0.08","0.16"], height=40, variable=self.tax)
         is_pos_shortcut_e = ctk.CTkCheckBox(form, text="📌 Mostrar en POS", variable=self.is_pos_shortcut)
+        print_logo_e = ctk.CTkCheckBox(form, text="🖨️ Imprimir Logo", variable=self.print_logo)
 
-        row("SKU *", sku_e)
-        row("Descripción *", desc_e)
-        row("Precio *", price_e)
-        row("Costo", cost_e)
-        row("Unidad", unit_e)
-        row("Tipo", kind_e)
-        row("Impuesto", tax_e)
-        row("Favorita", is_pos_shortcut_e)
+        add_field("SKU *", sku_e)
+        add_field("Descripción *", desc_e)
+        add_field("Precio *", price_e)
+        add_field("Costo", cost_e)
+        add_field("Unidad", unit_e)
+        add_field("Tipo", kind_e)
+        add_field("Impuesto", tax_e)
+        add_field("Favorita", is_pos_shortcut_e)
+        add_field("Logo", print_logo_e)
 
-        # Botones
         btns = ctk.CTkFrame(form, fg_color="transparent")
-        btns.pack(fill="x", pady=(16,0))
+        btns.grid(row=row, column=0, sticky="ew", pady=(15, 0))
 
         ctk.CTkButton(
             btns, text="↩️ Cancelar", fg_color="gray50", height=40,
             command=self._cancel_form
         ).pack(side="left")
 
+        btn_text = "💾 Guardar" if not edit else "🔄 Actualizar"
+        btn_color = "#2CC985" if not edit else "#3B82F6"
         ctk.CTkButton(
-            btns, text=("Actualizar" if edit else "Guardar"), fg_color="#2CC985", height=40,
+            btns, text=btn_text, fg_color=btn_color, height=40,
             command=self._save
         ).pack(side="right")
 
@@ -219,12 +271,12 @@ class ProductsFrame(ctk.CTkFrame):
             self.unit.set(p.unit or "pz")
             self.kind.set(p.kind or "Servicio")
             self.tax.set(f"{p.tax_rate:.2f}")
-            self.is_pos_shortcut.set(bool(getattr(p, "is_pos_shortcut", False)))  # ✅ recuperar valor
+            self.is_pos_shortcut.set(bool(getattr(p, "is_pos_shortcut", False)))
+            self.print_logo.set(bool(getattr(p, "print_logo", False)))
             sku_e.configure(state="disabled")
 
     def _cancel_form(self):
-        self.form_frame.pack_forget()
-        self.list_frame.pack(fill="both", expand=True)
+        self._show_placeholder()
         self._load_products(self.q_var.get().strip())
 
     def _save(self):
@@ -237,11 +289,13 @@ class ProductsFrame(ctk.CTkFrame):
             kind = self.kind.get() or "Servicio"
             tax = float(self.tax.get().strip() or "0.16")
             is_shortcut = bool(self.is_pos_shortcut.get())
+            is_print_logo = bool(self.print_logo.get())
 
             p = Product(
                 sku=sku, description=desc, price=price, cost=cost,
                 unit=unit, kind=kind, tax_rate=tax,
-                is_pos_shortcut=is_shortcut   # ✅ guardar valor
+                is_pos_shortcut=is_shortcut,
+                print_logo=is_print_logo,
             )
 
             errors = p.validate()
@@ -264,7 +318,6 @@ class ProductsFrame(ctk.CTkFrame):
 
     def _toggle_active(self, sku: str, active: bool):
         if active:
-            from tkinter import messagebox
             if messagebox.askyesno("Desactivar", "¿Desactivar este producto?"):
                 self.repo.deactivate(sku)
         else:

@@ -14,6 +14,7 @@ class Product:
     category_id: Optional[int] = None
     active: bool = True
     is_pos_shortcut: bool = False
+    print_logo: bool = False
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

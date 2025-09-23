@@ -36,11 +36,14 @@ class ProductRepository:
         try:
             self.conn.execute("""
                 INSERT INTO products
-                    (sku, description, price, cost, unit, kind, tax_rate, category_id, active, is_pos_shortcut)
-                VALUES (?,   ?,           ?,     ?,    ?,    ?,    ?,        ?,           ?,      ?)
+                    (sku, description, price, cost, unit, kind, tax_rate, category_id, active, is_pos_shortcut, print_logo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 p.sku, p.description, p.price, p.cost, p.unit, p.kind,
-                p.tax_rate, p.category_id, 1 if p.active else 0, 1 if p.is_pos_shortcut else 0
+                p.tax_rate, p.category_id,
+                1 if p.active else 0,
+                1 if p.is_pos_shortcut else 0,
+                1 if p.print_logo else 0 
             ))
             self.conn.commit()
             return p
@@ -65,11 +68,14 @@ class ProductRepository:
                    category_id = ?,
                    active = ?,
                    is_pos_shortcut = ?,
+                   print_logo = ?,
                    updated_at = datetime('now','localtime')
              WHERE sku = ?
         """, (
             p.description, p.price, p.cost, p.unit, p.kind, p.tax_rate,
-            p.category_id, 1 if p.active else 0, 1 if p.is_pos_shortcut else 0,
+            p.category_id, 1 if p.active else 0,
+            1 if p.is_pos_shortcut else 0,
+            1 if p.print_logo else 0,   # ✅ aquí también
             p.sku
         ))
         self.conn.commit()
@@ -80,7 +86,7 @@ class ProductRepository:
         # 🔧 Unificamos el orden de columnas en TODOS los SELECTs
         cur.execute("""
             SELECT sku, description, price, cost, unit, kind, tax_rate, category_id, active,
-                   is_pos_shortcut, created_at, updated_at
+                   is_pos_shortcut, print_logo, created_at, updated_at
               FROM products
              WHERE sku = ?
         """, (sku,))
@@ -92,7 +98,7 @@ class ProductRepository:
         cur = self.conn.cursor()
         base_sql = """
             SELECT sku, description, price, cost, unit, kind, tax_rate, category_id, active,
-                   is_pos_shortcut, created_at, updated_at
+                   is_pos_shortcut, print_logo, created_at, updated_at
               FROM products
         """
         if active_only:
@@ -111,7 +117,7 @@ class ProductRepository:
         cur = self.conn.cursor()
         base_sql = """
             SELECT sku, description, price, cost, unit, kind, tax_rate, category_id, active,
-                   is_pos_shortcut, created_at, updated_at
+                   is_pos_shortcut, print_logo, created_at, updated_at
               FROM products
         """
         if active_only:
@@ -129,6 +135,15 @@ class ProductRepository:
         """, (1 if new_shortcut else 0, sku))
         self.conn.commit()
 
+    def toggle_print_logo(self, sku: str, print_logo_value: bool):
+        new_print_value = not print_logo_value
+        self.conn.execute("""
+            UPDATE products
+               SET print_logo = ?
+             WHERE sku = ?
+        """, (1 if new_print_value else 0, sku))
+        self.conn.commit()        
+
     def deactivate(self, sku: str) -> bool:
         cur = self.conn.cursor()
         cur.execute("""
@@ -145,15 +160,15 @@ class ProductRepository:
         return Product(
             sku=r[0], description=r[1], price=float(r[2]), cost=float(r[3]),
             unit=r[4], kind=r[5], tax_rate=float(r[6]), category_id=r[7],
-            active=bool(r[8]), is_pos_shortcut=bool(r[9]),
-            created_at=r[10], updated_at=r[11]
+            active=bool(r[8]), is_pos_shortcut=bool(r[9]), print_logo=bool(r[10]), 
+            created_at=r[11], updated_at=r[12]
         )
 
     # ---------- POS helpers ----------
     def get_pos_shortcuts(self, limit=8):
         cur = self.conn.cursor()
         cur.execute("""
-            SELECT sku, description, price, tax_rate, is_pos_shortcut
+            SELECT sku, description, price, tax_rate, is_pos_shortcut, print_logo
               FROM products
              WHERE is_pos_shortcut = 1
              ORDER BY description ASC
@@ -165,7 +180,7 @@ class ProductRepository:
     def get_top_sold(self, limit=8):
         cur = self.conn.cursor()
         cur.execute("""
-            SELECT p.sku, p.description, p.price, p.tax_rate, p.is_pos_shortcut
+            SELECT p.sku, p.description, p.price, p.tax_rate, p.is_pos_shortcut, p.print_logo
               FROM products p
               JOIN sale_items si ON si.sku = p.sku
              GROUP BY p.sku
@@ -182,4 +197,5 @@ class ProductRepository:
             "price": float(row[2]),
             "tax_rate": float(row[3]),
             "is_pos_shortcut": bool(row[4]),
+            "print_logo": bool(row[5]),
         }

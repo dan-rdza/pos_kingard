@@ -162,7 +162,8 @@ CREATE TABLE IF NOT EXISTS products (
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  is_pos_shortcut BOOLEAN DEFAULT FALSE
+  is_pos_shortcut BOOLEAN DEFAULT FALSE,
+  print_logo BOOLEAN DEFAULT FALSE
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_products_updated
@@ -234,13 +235,30 @@ CREATE TABLE IF NOT EXISTS sale_items (
 
 CREATE INDEX IF NOT EXISTS idx_sale_items_saleid ON sale_items(sale_id);
 
+-- ================================
+-- TABLA: Métodos de Pago
+-- ================================
+CREATE TABLE IF NOT EXISTS payment_methods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,        -- Ej: Efectivo, Tarjeta, Transferencia
+    code TEXT NOT NULL UNIQUE,        -- Ej: cash, card, transfer
+    active INTEGER NOT NULL DEFAULT 1
+);
+
+-- Insertar algunos valores iniciales
+INSERT INTO payment_methods (name, code) VALUES
+('Efectivo', 'cash'),
+('Tarjeta', 'card'),
+('Transferencia', 'transfer');
+
+
 -- =========================================
 -- TABLA: payments
 -- =========================================
 CREATE TABLE IF NOT EXISTS payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-  method TEXT NOT NULL,
+  method_id INTEGER NOT NULL REFERENCES payment_methods(id),
   amount REAL NOT NULL CHECK (amount >= 0),
   reference TEXT,
   transaction_id TEXT,
@@ -298,6 +316,41 @@ BEGIN
       tax_total      = (SELECT iva  FROM v_sales_calc WHERE sale_id = OLD.sale_id),
       total          = (SELECT tot  FROM v_sales_calc WHERE sale_id = OLD.sale_id)
   WHERE id = OLD.sale_id;
+END;
+
+
+CREATE TRIGGER IF NOT EXISTS trg_payments_ai AFTER INSERT ON payments
+BEGIN
+    UPDATE sales
+    SET payment_status = CASE
+        WHEN (SELECT SUM(amount) FROM payments WHERE sale_id = NEW.sale_id) >= total
+        THEN 'PAID'
+        ELSE 'PARTIAL'
+    END
+    WHERE id = NEW.sale_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_payments_au AFTER UPDATE ON payments
+BEGIN
+    UPDATE sales
+    SET payment_status = CASE
+        WHEN (SELECT SUM(amount) FROM payments WHERE sale_id = NEW.sale_id) >= total
+        THEN 'PAID'
+        ELSE 'PARTIAL'
+    END
+    WHERE id = NEW.sale_id;
+END;
+
+
+CREATE TRIGGER IF NOT EXISTS trg_payments_ad AFTER DELETE ON payments
+BEGIN
+    UPDATE sales
+    SET payment_status = CASE
+        WHEN (SELECT SUM(amount) FROM payments WHERE sale_id = OLD.sale_id) >= total
+        THEN 'PAID'
+        ELSE 'PARTIAL'
+    END
+    WHERE id = OLD.sale_id;
 END;
 
 -- =========================================

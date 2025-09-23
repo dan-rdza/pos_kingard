@@ -50,7 +50,6 @@ class App(ctk.CTk):
         self.clear_view()
         POSFrame(self, self.db.get_connection()).pack(fill="both", expand=True)
 
-
     def show_reports(self):
         print("Abriendo reportes...")
 

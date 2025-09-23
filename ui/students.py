@@ -3,8 +3,9 @@ import customtkinter as ctk
 from tkinter import messagebox
 from models.student import Student
 from repositories.student_repo import StudentRepository
-from repositories.tutor_repo import TutorRepository  # solo para mostrar tutor principal
+from repositories.tutor_repo import TutorRepository
 from ui.tutors import TutorsPanel
+
 
 class StudentsFrame(ctk.CTkFrame):
     def __init__(self, parent, db_connection):
@@ -19,9 +20,9 @@ class StudentsFrame(ctk.CTkFrame):
         self.load_students()
 
     def create_widgets(self):
-        # Header / Título (corregido: ahora es atributo de instancia)
-        self.title_frame = ctk.CTkFrame(self, fg_color='transparent')
-        self.title_frame.pack(fill='x', padx=(10, 10), pady=(15, 15))
+        # Header
+        self.title_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.title_frame.pack(fill="x", padx=(10, 10), pady=(15, 15))
 
         ctk.CTkLabel(
             self.title_frame,
@@ -43,15 +44,26 @@ class StudentsFrame(ctk.CTkFrame):
             height=35, fg_color="#2CC985", hover_color="#207A4C"
         ).pack(side="right")
 
-        # Contenedor ancho completo
-        search_container = ctk.CTkFrame(self, fg_color="transparent")
-        search_container.pack(fill="x", padx=(10, 10), pady=(10, 20))
+        # Body con 2 paneles
+        self.body = ctk.CTkFrame(self, fg_color="transparent")
+        self.body.pack(fill="both", expand=True)
 
-        # Frame con 60% de ancho dentro del contenedor
+        self.body.grid_columnconfigure(0, weight=2, uniform="col")
+        self.body.grid_columnconfigure(1, weight=1, uniform="col")
+        self.body.grid_rowconfigure(0, weight=1)
+
+        # Panel izquierdo (lista + búsqueda)
+        left_panel = ctk.CTkFrame(self.body, fg_color="transparent")
+        left_panel.grid(row=0, column=0, sticky="nsew")
+
+        # Búsqueda
+        self.search_container = ctk.CTkFrame(left_panel, fg_color="transparent")
+        self.search_container.pack(fill="x", padx=(10, 10), pady=(10, 20))
+
         frame_width = int(self.winfo_screenwidth() * 0.6)
 
-        self.search_frame = ctk.CTkFrame(search_container, fg_color="transparent", width=frame_width)
-        self.search_frame.pack(anchor="w")  # "w" izquierda, "center" centro, "e" derecha
+        self.search_frame = ctk.CTkFrame(self.search_container, fg_color="transparent", width=frame_width)
+        self.search_frame.pack(anchor="w")
 
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(
@@ -70,58 +82,29 @@ class StudentsFrame(ctk.CTkFrame):
         ).pack(side="right")
 
         # Lista
-        self.list_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.list_frame = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
         self.list_frame.pack(fill="both", expand=True)
-        
-        self.tutors_container = None
-        
-        # Formulario
-        self.form_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.create_form_widgets()
 
-    def create_form_widgets(self):
-        form = ctk.CTkScrollableFrame(self.form_frame, fg_color="transparent")
-        form.pack(fill="both", expand=True, padx=10, pady=20)
-        form.grid_columnconfigure(0, weight=1)
+        # Panel derecho (formulario o placeholder)
+        self.form_frame = ctk.CTkFrame(self.body, fg_color="transparent")
+        self.form_frame.grid(row=0, column=1, sticky="nsew")
 
-        fields = [
-            ("Matrícula *", "enrollment_entry", "entry", ""),
-            ("Nombre *", "first_name_entry", "entry", ""),
-            ("Apellido", "second_name_entry", "entry", ""),
-            ("CURP", "curp_entry", "entry", ""),
-            ("Género", "gender_var", "combobox", ["", "M", "F"]),
-            ("Fecha Nacimiento", "birth_date_entry", "entry", "YYYY-MM-DD"),
-            ("Referencia Pago", "pay_ref_entry", "entry", ""),
-            ("Dirección", "address_entry", "entry", "")
-        ]
+        self._show_placeholder()
 
-        for i, (label_text, attr_name, field_type, options) in enumerate(fields):
-            ctk.CTkLabel(form, text=label_text, font=ctk.CTkFont(weight="bold")).grid(
-                row=i*2, column=0, sticky="w", pady=(10 if i == 0 else 0, 5)
-            )
-            if field_type == "combobox":
-                var = ctk.StringVar(value="")
-                field = ctk.CTkComboBox(form, values=options, variable=var, height=40)
-                setattr(self, attr_name, var)
-            else:
-                field = ctk.CTkEntry(form, height=40, placeholder_text=options)
-                setattr(self, attr_name, field)
-            field.grid(row=i*2 + 1, column=0, sticky="ew", pady=(0, 10))
+    def _show_placeholder(self):
+        self._clear_container(self.form_frame)
+        placeholder = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        placeholder.pack(expand=True, fill="both")
+        ctk.CTkLabel(
+            placeholder,
+            text="👈 Selecciona un alumno o da clic en ➕ Nuevo",
+            font=ctk.CTkFont(size=14),
+            text_color="gray70"
+        ).pack(expand=True)
 
-        btn_frame = ctk.CTkFrame(form, fg_color="transparent")
-        btn_frame.grid(row=len(fields)*2, column=0, sticky="ew", pady=(20, 0))
-        btn_frame.grid_columnconfigure(0, weight=1)
-        btn_frame.grid_columnconfigure(1, weight=0)
-
-        ctk.CTkButton(
-            btn_frame, text="↩️ Cancelar",
-            command=self.hide_form, height=40, fg_color="gray50"
-        ).grid(row=0, column=0, sticky="w", padx=(0, 10))
-
-        ctk.CTkButton(
-            btn_frame, text="💾 Guardar Alumno",
-            command=self.save_student, height=40, fg_color="#2CC985"
-        ).grid(row=0, column=1, sticky="e")
+    def _clear_container(self, container):
+        for w in container.winfo_children():
+            w.destroy()
 
     def load_students(self):
         for w in self.list_frame.winfo_children():
@@ -135,8 +118,13 @@ class StudentsFrame(ctk.CTkFrame):
             ).pack(pady=50)
             return
 
-        for student in students:
-            self.create_student_card(student)
+        self.list_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
+
+        for idx, student in enumerate(students):
+            row = idx // 2
+            col = idx % 2
+            card = self.create_student_card(student)
+            card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
     def on_search(self, event=None):
         query = self.search_var.get().strip()
@@ -144,11 +132,9 @@ class StudentsFrame(ctk.CTkFrame):
             self.load_students()
             return
         
-        # Limpiar lista
         for widget in self.list_frame.winfo_children():
             widget.destroy()
         
-        # Buscar estudiantes
         students = self.repo.search(query)
         
         if not students:
@@ -160,9 +146,12 @@ class StudentsFrame(ctk.CTkFrame):
             ).pack(pady=50)
             return
         
-        for student in students:
-            self.create_student_card(student)
-
+        self.list_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
+        for idx, student in enumerate(students):
+            row = idx // 2
+            col = idx % 2
+            card = self.create_student_card(student)
+            card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
     def go_back_to_menu(self):
         for widget in self.parent.winfo_children():
@@ -176,15 +165,20 @@ class StudentsFrame(ctk.CTkFrame):
 
     def create_student_card(self, student):
         card = ctk.CTkFrame(self.list_frame, corner_radius=10, border_width=1)
-        card.pack(fill="x", pady=5, padx=5)
 
         info_frame = ctk.CTkFrame(card, fg_color="transparent")
-        info_frame.pack(fill="x", padx=15, pady=10)
+        info_frame.pack(fill="both", expand=True, padx=15, pady=10)
 
         ctk.CTkLabel(
             info_frame,
-            text=f"{student.enrollment} - {student.first_name} {student.second_name or ''}",
-            font=ctk.CTkFont(weight="bold")
+            text=f"{student.enrollment}",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w")
+
+        ctk.CTkLabel(
+            info_frame,
+            text=f"{student.first_name} {student.second_name or ''}",
+            font=ctk.CTkFont(size=14)
         ).pack(anchor="w")
 
         if student.curp:
@@ -193,7 +187,6 @@ class StudentsFrame(ctk.CTkFrame):
                 font=ctk.CTkFont(size=12), text_color="gray60"
             ).pack(anchor="w", pady=(2, 0))
 
-        # tutor principal (solo lectura aquí)
         tutors = self.tutor_repo.get_by_student(student.student_id)
         primary_tutor = next((t for t in tutors if t.is_primary), None)
         if primary_tutor:
@@ -219,39 +212,79 @@ class StudentsFrame(ctk.CTkFrame):
             height=30, width=80, fg_color="#2b3d78"
         ).pack(side="right", padx=(5, 0))
 
+        return card
+
     def show_new_form(self):
         self.current_student = None
-        self.clear_form()
-        self.form_frame.pack(fill="both", expand=True)
-        self.list_frame.pack_forget()
-        self.title_frame.pack_forget()
-        self.search_frame.pack_forget()        
-        self.enrollment_entry.focus()
+        self._show_form()
 
     def hide_form(self):
-        self.form_frame.pack_forget()
-        self.title_frame.pack(fill='x', padx=(10, 10), pady=(15, 15))
-        self.search_frame.pack(fill="x", padx=(10, 10), pady=(15, 15))
-        self.list_frame.pack(fill="both", expand=True)
+        self.current_student = None
+        self._show_placeholder()
         self.load_students()
-
-    def clear_form(self):
-        self.enrollment_entry.delete(0, ctk.END)
-        self.first_name_entry.delete(0, ctk.END)
-        self.second_name_entry.delete(0, ctk.END)
-        self.curp_entry.delete(0, ctk.END)
-        self.birth_date_entry.delete(0, ctk.END)
-        self.pay_ref_entry.delete(0, ctk.END)
-        self.address_entry.delete(0, ctk.END)
-        self.gender_var.set("")
 
     def edit_student(self, student):
         self.current_student = student
-        self.show_new_form()
-        self.fill_form(student)
+        self._show_form(student)
+
+    def _show_form(self, student: Student | None = None):
+        self._clear_container(self.form_frame)
+
+        form = ctk.CTkScrollableFrame(self.form_frame, fg_color="transparent")
+        form.pack(fill="both", expand=True, padx=10, pady=20)
+        form.grid_columnconfigure(0, weight=1)
+
+        title_text = "➕ Nuevo Alumno" if student is None else "✏️ Editar Alumno"
+        ctk.CTkLabel(form, text=title_text, font=ctk.CTkFont(size=20, weight="bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 10)
+        )
+
+        row = 1
+        def add_field(label, widget):
+            nonlocal row
+            ctk.CTkLabel(form, text=label, font=ctk.CTkFont(weight="bold")).grid(row=row, column=0, sticky="w", pady=(8, 2))
+            row += 1
+            widget.grid(row=row, column=0, sticky="ew", pady=(0, 5))
+            row += 1
+
+        self.enrollment_entry = ctk.CTkEntry(form, height=40, placeholder_text="Matrícula")
+        self.first_name_entry = ctk.CTkEntry(form, height=40, placeholder_text="Nombre")
+        self.second_name_entry = ctk.CTkEntry(form, height=40, placeholder_text="Apellido")
+        self.curp_entry = ctk.CTkEntry(form, height=40, placeholder_text="CURP")
+        self.gender_var = ctk.StringVar(value="")
+        gender_cb = ctk.CTkComboBox(form, values=["", "M", "F"], variable=self.gender_var, height=40)
+        self.birth_date_entry = ctk.CTkEntry(form, height=40, placeholder_text="YYYY-MM-DD")
+        self.pay_ref_entry = ctk.CTkEntry(form, height=40, placeholder_text="Referencia de pago")
+        self.address_entry = ctk.CTkEntry(form, height=40, placeholder_text="Dirección")
+
+        add_field("Matrícula *", self.enrollment_entry)
+        add_field("Nombre *", self.first_name_entry)
+        add_field("Apellido", self.second_name_entry)
+        add_field("CURP", self.curp_entry)
+        add_field("Género", gender_cb)
+        add_field("Fecha de nacimiento", self.birth_date_entry)
+        add_field("Referencia de pago", self.pay_ref_entry)
+        add_field("Dirección", self.address_entry)
+
+        btns = ctk.CTkFrame(form, fg_color="transparent")
+        btns.grid(row=row, column=0, sticky="ew", pady=(15, 0))
+
+        ctk.CTkButton(
+            btns, text="↩️ Cancelar", fg_color="gray50", height=40,
+            command=self.hide_form
+        ).pack(side="left", padx=(0, 10))
+
+        btn_text = "💾 Guardar" if student is None else "🔄 Actualizar"
+        btn_color = "#2CC985" if student is None else "#3B82F6"
+        ctk.CTkButton(
+            btns, text=btn_text, fg_color=btn_color, height=40,
+            command=self.save_student
+        ).pack(side="right")
+
+        if student:
+            self.fill_form(student)
 
     def fill_form(self, student):
-        self.clear_form()
         self.enrollment_entry.insert(0, student.enrollment)
         self.first_name_entry.insert(0, student.first_name)
         if student.second_name:
@@ -297,33 +330,14 @@ class StudentsFrame(ctk.CTkFrame):
         except Exception as e:
             messagebox.showerror("Error", f"Error al guardar: {str(e)}")
 
- # 🔹 Abrir tutores como panel embebido (capa propia)
     def manage_tutors(self, student):
         self.current_student = student
-        # ocultar UI de alumnos
-        self.list_frame.pack_forget()
-        self.search_frame.pack_forget()
-        self.title_frame.pack_forget()
-
-        # montar panel si no existe
-        if self.tutors_container is None:
-            self.tutors_container = ctk.CTkFrame(self, fg_color="transparent")
-            self.tutors_container.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # limpiar contenedor y montar panel
-        for w in self.tutors_container.winfo_children():
-            w.destroy()
+        self._clear_container(self.form_frame)
 
         def _back():
-            # destruir panel y restaurar alumnos
-            for w in self.tutors_container.winfo_children():
-                w.destroy()
-            self.tutors_container.pack_forget()
-            self.tutors_container = None
-            self.title_frame.pack(fill='x', padx=(10,10), pady=(15, 15))
-            self.search_frame.pack(fill="x", padx=(10,10), pady=(15, 15))
-            self.list_frame.pack(fill="both", expand=True)
-            self.load_students()  # refresca para mostrar tutor principal
+            self._clear_container(self.form_frame)
+            self._show_placeholder()
+            self.load_students()
 
-        panel = TutorsPanel(self.tutors_container, self.db_connection, student, on_back=_back)
+        panel = TutorsPanel(self.form_frame, self.db_connection, student, on_back=_back)
         panel.pack(fill="both", expand=True)
