@@ -5,8 +5,7 @@ from repositories.student_repo import StudentRepository
 from repositories.product_repo import ProductRepository
 from repositories.sale_repo import SaleRepository
 from repositories.payment_method_repo import PaymentMethodRepository
-from escpos.printer import Usb  # o Network, Serial, File según tu impresora
-import os
+from printer.printer import TicketPrinter
 
 
 class POSFrame(ctk.CTkFrame):
@@ -296,6 +295,7 @@ class POSFrame(ctk.CTkFrame):
 
     # ---------- Pago ----------
     def _on_pay(self):
+        printer = TicketPrinter()
         if not self.cart:
             messagebox.showwarning("POS", "No hay productos en el carrito")
             return
@@ -316,61 +316,53 @@ class POSFrame(ctk.CTkFrame):
             amount=total
         )
 
-        # 🔹 Obtener el nombre del método desde repositorio
         pm = self.pm_repo.get(payment_method_id)
         payment_method_name = pm["name"] if pm else f"ID {payment_method_id}"
 
-        print_logo = any(i.get("print_logo", False) for i in self.cart)
-        self._print_ticket(sale_id, self.selected_student, self.cart, total, payment_method_name, print_logo)
+        folio = f"F{sale_id:04d}"  # ejemplo: F004
+
+
+        items = [
+            {
+                "description": i["description"],
+                "qty": i["qty"],
+                "unit_price": i["price"],
+                "tax_rate": i["tax_rate"]
+            }
+            for i in self.cart
+        ]
+
+        business = {
+            "name": "KINDERGARTEN REYES",
+            "rfc": "XAXX010101000",
+            "address": "Av. Siempre Viva 123, CDMX",
+            "phone": "(55) 1234-5678",
+            "footer": "Este ticket no es comprobante fiscal"
+        }        
+
+        totals = {"subtotal": subtotal, "tax": tax, "total": total}
+        # ✅ Confirmación al usuario
+        if messagebox.askyesno("Venta procesada",
+            f"Venta procesada con el folio {folio} en {payment_method_name}.\n\n¿Imprimir ticket?"):
+            
+               
+            printer.print_ticket(
+                header={"folio": folio, "student": f"{self.selected_student.first_name} {self.selected_student.second_name or ''}", "enrollment": self.selected_student.enrollment},
+                items=items,
+                totals=totals,
+                payment_method=payment_method_name,
+                business=business
+            )
+
+
 
 
     # ---------- Imprimir Ticket ---------- 
-    def _print_ticket(self, sale_id, student, cart, total, payment_method, print_logo=False):
+    def _print_ticket(self, items=dict, totals=float, payment_method_name=str, print_logo=False):
         """
         Imprime ticket en impresora ESC/POS.
-        """
-        try:
-            # Ajusta estos valores a tu impresora USB
-            p = Usb(0x04b8, 0x0e15)  # VendorID, ProductID (ejemplo Epson)
+        """      
 
-            # Logo opcional
-            if print_logo:
-                logo_path = os.path.join("assets", "logo.png")
-                if os.path.exists(logo_path):
-                    p.image(logo_path, center=True)
-
-            p.set(align="center", text_type="B")
-            p.text("POS KINGARD\n")
-            p.set(align="center")
-            p.text(f"Venta #{sale_id}\n")
-            p.text("-----------------------------\n")
-
-            # Alumno
-            p.set(align="left")
-            p.text(f"Alumno: {student.first_name} {student.second_name or ''}\n")
-            p.text(f"Matrícula: {student.enrollment}\n")
-            p.text("-----------------------------\n")
-
-            # Items
-            for item in cart:
-                desc = item["description"][:20]  # recorte
-                qty = item["qty"]
-                price = item["price"]
-                line_total = price * qty
-                p.text(f"{desc:<20}{qty} x {price:.2f}\n")
-                p.text(f"{'':<20}{line_total:>10.2f}\n")
-
-            p.text("-----------------------------\n")
-            p.set(text_type="B")
-            p.text(f"TOTAL: ${total:.2f}\n")
-            p.set(text_type="NORMAL")
-            p.text(f"Pago: {payment_method}\n")
-            p.text("-----------------------------\n")
-
-            p.text("¡Gracias por su compra!\n")
-            p.cut()
-        except Exception as e:
-            print(f"Error imprimiendo ticket: {e}")
 
 
     # ---------- Volver al menú ----------
