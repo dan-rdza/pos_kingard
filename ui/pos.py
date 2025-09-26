@@ -321,7 +321,6 @@ class POSFrame(ctk.CTkFrame):
 
         folio = f"F{sale_id:04d}"  # ejemplo: F004
 
-
         items = [
             {
                 "description": i["description"],
@@ -353,8 +352,10 @@ class POSFrame(ctk.CTkFrame):
                 payment_method=payment_method_name,
                 business=business
             )
-
-
+        # Limpia carrito
+        messagebox.showinfo("POS", "Venta Registrada")
+        self.cart = []
+        self._refresh_cart()
 
 
     # ---------- Imprimir Ticket ---------- 

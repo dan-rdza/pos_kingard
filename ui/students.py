@@ -3,8 +3,8 @@ import customtkinter as ctk
 from tkinter import messagebox
 from models.student import Student
 from repositories.student_repo import StudentRepository
-from repositories.tutor_repo import TutorRepository
-from ui.tutors import TutorsPanel
+from repositories.tutor_repo import TutorRepository 
+from ui.tutors import TutorsFrame
 
 
 class StudentsFrame(ctk.CTkFrame):
@@ -192,9 +192,16 @@ class StudentsFrame(ctk.CTkFrame):
         if primary_tutor:
             ctk.CTkLabel(
                 info_frame,
-                text=f"📞 {primary_tutor.full_name()} ({primary_tutor.relationship})",
+                text=f"👤 {primary_tutor.full_name()} ({primary_tutor.relationship})",
                 font=ctk.CTkFont(size=12), text_color="gray60"
             ).pack(anchor="w", pady=(2, 0))
+
+            ctk.CTkLabel(
+                info_frame,
+                text=f"📱{primary_tutor.formart_phonenumber()}",
+                font=ctk.CTkFont(size=12), text_color="gray60"
+            ).pack(anchor="w", pady=(2, 0))
+            
 
         action_frame = ctk.CTkFrame(card, fg_color="transparent")
         action_frame.pack(fill="x", padx=15, pady=(5, 10))
@@ -331,13 +338,9 @@ class StudentsFrame(ctk.CTkFrame):
             messagebox.showerror("Error", f"Error al guardar: {str(e)}")
 
     def manage_tutors(self, student):
-        self.current_student = student
-        self._clear_container(self.form_frame)
+        # Destruir la pantalla actual (alumnos)
+        for w in self.parent.winfo_children():
+            w.destroy()
 
-        def _back():
-            self._clear_container(self.form_frame)
-            self._show_placeholder()
-            self.load_students()
-
-        panel = TutorsPanel(self.form_frame, self.db_connection, student, on_back=_back)
-        panel.pack(fill="both", expand=True)
+        # Crear nueva pantalla de tutores, independiente
+        TutorsFrame(self.parent, self.db_connection, student).pack(fill="both", expand=True)

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+import phonenumbers
 
 @dataclass
 class Tutor:
@@ -20,4 +21,11 @@ class Tutor:
             self.created_at = datetime.now()
     
     def full_name(self):
-        return f"{self.first_name} {self.second_name}".strip()
+        return f"{self.first_name} {self.second_name}".strip()    
+
+    def formart_phonenumber(self, country="MX"):
+        try:
+            parsed_number = phonenumbers.parse(self.phone, country)
+            return phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.NATIONAL)
+        except:
+            return str(self.phone)

@@ -1,4 +1,5 @@
 # ui/tutors.py
+from sys import maxsize
 import customtkinter as ctk
 import re
 from tkinter import messagebox, BooleanVar
@@ -6,19 +7,19 @@ from models.tutor import Tutor
 from repositories.tutor_repo import TutorRepository
 
 
-class TutorsPanel(ctk.CTkFrame):
+class TutorsFrame(ctk.CTkFrame):
     """
     Panel embebido para gestionar tutores de un alumno.
     Se monta dentro de StudentsFrame sin tocar main.py.
     """
-    def __init__(self, parent, db_connection, student, on_back):
+    def __init__(self, parent, db_connection, student):
         super().__init__(parent, fg_color="transparent")
-        self.db = db_connection
-        self.repo = TutorRepository(self.db)
+        self.parent = parent
+        self.db_connection = db_connection
+        self.repo = TutorRepository(db_connection)
         self.student = student
-        self.on_back = on_back
-
         self.current_tutor = None
+
         self._build_ui()
         self._load_tutors()
 
@@ -36,7 +37,7 @@ class TutorsPanel(ctk.CTkFrame):
 
         ctk.CTkButton(
             header, text="⬅️ Volver", height=35, fg_color="gray50",
-            command=self.on_back
+            command=self._back_to_students
         ).pack(side="right", padx=(10, 0))
 
         ctk.CTkButton(
@@ -276,3 +277,11 @@ class TutorsPanel(ctk.CTkFrame):
             self._load_tutors()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo establecer como principal: {e}")
+
+    def _back_to_students(self):
+        # Destruir tutores y regresar a alumnos
+        for w in self.parent.winfo_children():
+            w.destroy()
+
+        from ui.students import StudentsFrame
+        StudentsFrame(self.parent, self.db_connection).pack(fill="both", expand=True)
