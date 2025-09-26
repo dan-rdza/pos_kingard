@@ -5,6 +5,7 @@ from models.student import Student
 from repositories.student_repo import StudentRepository
 from repositories.tutor_repo import TutorRepository 
 from ui.tutors import TutorsFrame
+from shared.utils import char_limit_validator
 
 
 class StudentsFrame(ctk.CTkFrame):
@@ -254,15 +255,20 @@ class StudentsFrame(ctk.CTkFrame):
             widget.grid(row=row, column=0, sticky="ew", pady=(0, 5))
             row += 1
 
+
+        vcmd = (self.register(char_limit_validator(18)), '%P')
+
+
         self.enrollment_entry = ctk.CTkEntry(form, height=40, placeholder_text="Matrícula")
         self.first_name_entry = ctk.CTkEntry(form, height=40, placeholder_text="Nombre")
         self.second_name_entry = ctk.CTkEntry(form, height=40, placeholder_text="Apellido")
-        self.curp_entry = ctk.CTkEntry(form, height=40, placeholder_text="CURP")
+        self.curp_entry = ctk.CTkEntry(form, height=40, placeholder_text="CURP",validate="key", validatecommand=vcmd)
         self.gender_var = ctk.StringVar(value="")
         gender_cb = ctk.CTkComboBox(form, values=["", "M", "F"], variable=self.gender_var, height=40)
         self.birth_date_entry = ctk.CTkEntry(form, height=40, placeholder_text="YYYY-MM-DD")
         self.pay_ref_entry = ctk.CTkEntry(form, height=40, placeholder_text="Referencia de pago")
         self.address_entry = ctk.CTkEntry(form, height=40, placeholder_text="Dirección")
+        
 
         add_field("Matrícula *", self.enrollment_entry)
         add_field("Nombre *", self.first_name_entry)

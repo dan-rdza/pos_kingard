@@ -1,0 +1,21 @@
+[LOGO]
+Jardín de Niños
+RFC: XAXX010101000
+Dirección del plantel
+Tel: 555-123-4567
+------------------------------------------------
+Venta: F0041                    26/09/2025 01:06
+Matrícula: ALM0001
+Alumno: Daniel Alejandro Rodríguez Anaya
+------------------------------------------------
+CONCEPTO            CANT      P.U.      IMPORTE
+------------------------------------------------
+UNIFORMES              2   1500.00      3000.00
+SERVICIO DE COMEDOR    1    600.00       600.00
+------------------------------------------------
+                               SUBTOTAL: 3600.00
+                                       IVA: 0.00
+                                  TOTAL: 3600.00
+------------------------------------------------
+Pago: Efectivo
+¡Gracias por su preferencia!

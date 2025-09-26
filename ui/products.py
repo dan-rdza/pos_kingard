@@ -176,7 +176,6 @@ class ProductsFrame(ctk.CTkFrame):
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo actualizar POS: {e}")
 
-
     def _toggle_print_logo(self, p: Product):
         try:
             self.repo.toggle_print_logo(p.sku, p.print_logo)
@@ -217,9 +216,9 @@ class ProductsFrame(ctk.CTkFrame):
         self.desc = ctk.StringVar()
         self.price = ctk.StringVar()
         self.cost = ctk.StringVar(value="0")
-        self.unit = ctk.StringVar(value="pz")
-        self.kind = ctk.StringVar(value="Servicio")
-        self.tax = ctk.StringVar(value="0.16")
+        self.unit = ctk.StringVar(value="SERV")
+        self.kind = ctk.StringVar(value="SERVICIO")
+        self.tax = ctk.StringVar(value="0.0")
         self.is_pos_shortcut = ctk.BooleanVar(value=False)
         self.print_logo = ctk.BooleanVar(value=False)
 
@@ -227,8 +226,8 @@ class ProductsFrame(ctk.CTkFrame):
         desc_e  = ctk.CTkEntry(form, textvariable=self.desc, height=40, placeholder_text="Descripción")
         price_e = ctk.CTkEntry(form, textvariable=self.price, height=40, placeholder_text="Precio (ej. 150.00)")
         cost_e  = ctk.CTkEntry(form, textvariable=self.cost, height=40, placeholder_text="Costo (opcional)")
-        unit_e  = ctk.CTkComboBox(form, values=["pz","serv","hr","mes"], height=40, variable=self.unit)
-        kind_e  = ctk.CTkComboBox(form, values=["Servicio","Producto"], height=40, variable=self.kind)
+        unit_e  = ctk.CTkComboBox(form, values=["PZA","SERV","UNIDAD"], height=40, variable=self.unit)
+        kind_e  = ctk.CTkComboBox(form, values=["SERVICIO","PRODUCTO"], height=40, variable=self.kind)
         tax_e   = ctk.CTkComboBox(form, values=["0.00","0.08","0.16"], height=40, variable=self.tax)
         is_pos_shortcut_e = ctk.CTkCheckBox(form, text="📌 Mostrar en POS", variable=self.is_pos_shortcut)
         print_logo_e = ctk.CTkCheckBox(form, text="🖨️ Imprimir Logo", variable=self.print_logo)
@@ -268,8 +267,8 @@ class ProductsFrame(ctk.CTkFrame):
             self.desc.set(p.description)
             self.price.set(f"{p.price:.2f}")
             self.cost.set(f"{p.cost:.2f}")
-            self.unit.set(p.unit or "pz")
-            self.kind.set(p.kind or "Servicio")
+            self.unit.set(p.unit or "SERV")
+            self.kind.set(p.kind or "SERVICIO")
             self.tax.set(f"{p.tax_rate:.2f}")
             self.is_pos_shortcut.set(bool(getattr(p, "is_pos_shortcut", False)))
             self.print_logo.set(bool(getattr(p, "print_logo", False)))
@@ -285,9 +284,9 @@ class ProductsFrame(ctk.CTkFrame):
             desc = self.desc.get().strip()
             price = float(self.price.get().strip() or "0")
             cost = float(self.cost.get().strip() or "0")
-            unit = self.unit.get() or "pz"
-            kind = self.kind.get() or "Servicio"
-            tax = float(self.tax.get().strip() or "0.16")
+            unit = self.unit.get() or "SERV"
+            kind = self.kind.get() or "SERVICIO"
+            tax = float(self.tax.get().strip() or "0.0")
             is_shortcut = bool(self.is_pos_shortcut.get())
             is_print_logo = bool(self.print_logo.get())
 

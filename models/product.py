@@ -32,6 +32,6 @@ class Product:
             errors.append("La tasa de impuesto debe ser mayor o igual a 0")
         if self.unit is None or not self.unit.strip():
             errors.append("La unidad es obligatoria")
-        if self.kind not in ("Servicio", "Producto"):
+        if self.kind not in ("SERVICIO", "PRODUCTO"):
             errors.append("El tipo debe ser 'Servicio' o 'Producto'")
         return errors

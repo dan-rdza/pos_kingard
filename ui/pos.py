@@ -6,7 +6,8 @@ from repositories.product_repo import ProductRepository
 from repositories.sale_repo import SaleRepository
 from repositories.payment_method_repo import PaymentMethodRepository
 from printer.printer import TicketPrinter
-
+from repositories.business_repo import BusinessRepository
+from printer.printer import TicketPrinter
 
 class POSFrame(ctk.CTkFrame):
     def __init__(self, parent, db_connection):
@@ -18,10 +19,12 @@ class POSFrame(ctk.CTkFrame):
         self.product_repo = ProductRepository(self.db)
         self.sale_repo = SaleRepository(self.db)
         self.pm_repo = PaymentMethodRepository(self.db)
-
+        self.business_repo = BusinessRepository(self.db)
+        
         self.selected_student = None
         self.cart = []
         self.payment_method = ctk.StringVar(value="")  # se cargará dinámicamente
+        
 
         self._build_ui()
 
@@ -295,7 +298,7 @@ class POSFrame(ctk.CTkFrame):
 
     # ---------- Pago ----------
     def _on_pay(self):
-        printer = TicketPrinter()
+        printer = TicketPrinter(paper_width_mm=80)
         if not self.cart:
             messagebox.showwarning("POS", "No hay productos en el carrito")
             return
@@ -331,29 +334,28 @@ class POSFrame(ctk.CTkFrame):
             for i in self.cart
         ]
 
-        business = {
-            "name": "KINDERGARTEN REYES",
-            "rfc": "XAXX010101000",
-            "address": "Av. Siempre Viva 123, CDMX",
-            "phone": "(55) 1234-5678",
-            "footer": "Este ticket no es comprobante fiscal"
-        }        
+        business = self.business_repo.get_config()
+        if not business:
+            messagebox.showerror("Error", "No existe configuración de la empresa en la base de datos")
+            return     
+        
 
         totals = {"subtotal": subtotal, "tax": tax, "total": total}
+        
         # ✅ Confirmación al usuario
-        if messagebox.askyesno("Venta procesada",
-            f"Venta procesada con el folio {folio} en {payment_method_name}.\n\n¿Imprimir ticket?"):
-            
+        if messagebox.askyesno("POS",f"¿Imprimir ticket?"):            
                
-            printer.print_ticket(
+            preview = printer.preview_ticket(
                 header={"folio": folio, "student": f"{self.selected_student.first_name} {self.selected_student.second_name or ''}", "enrollment": self.selected_student.enrollment},
                 items=items,
                 totals=totals,
                 payment_method=payment_method_name,
                 business=business
-            )
-        # Limpia carrito
-        messagebox.showinfo("POS", "Venta Registrada")
+            )        
+            messagebox.showinfo("POS", f"Venta Procesada.\n\nFolio: {folio}\nMétodo de Pago: {payment_method_name}.\n\n")
+            print(preview)
+        else:
+            messagebox.showwarning("POS", f"Venta Procesada.\n\nFolio: {folio}\nMétodo de Pago: {payment_method_name}.\n\n")
         self.cart = []
         self._refresh_cart()
 

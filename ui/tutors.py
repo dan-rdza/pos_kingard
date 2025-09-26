@@ -5,6 +5,7 @@ import re
 from tkinter import messagebox, BooleanVar
 from models.tutor import Tutor
 from repositories.tutor_repo import TutorRepository
+from shared.utils import char_limit_validator
 
 
 class TutorsFrame(ctk.CTkFrame):
@@ -180,10 +181,12 @@ class TutorsFrame(ctk.CTkFrame):
             widget.grid(row=row, column=0, sticky="ew", pady=(0, 5))
             row += 1
 
+        vcmd = (self.register(char_limit_validator(10)), '%P')
+
         self.t_first = ctk.CTkEntry(form, height=40, placeholder_text="Nombre(s)")
         self.t_second = ctk.CTkEntry(form, height=40, placeholder_text="Apellido(s)")
         self.t_rel = ctk.CTkComboBox(form, values=["Padre", "Madre", "Tutor", "Abuelo", "Otro"], height=40)
-        self.t_phone = ctk.CTkEntry(form, height=40, placeholder_text="Teléfono (10 dígitos)")
+        self.t_phone = ctk.CTkEntry(form, height=40, placeholder_text="Teléfono (10 dígitos)", validate="key", validatecommand=vcmd)
         self.t_email = ctk.CTkEntry(form, height=40, placeholder_text="Correo electrónico")
         self.t_primary_var = BooleanVar(value=False)
         self.t_primary = ctk.CTkCheckBox(form, text="⭐ Tutor Principal", variable=self.t_primary_var)
