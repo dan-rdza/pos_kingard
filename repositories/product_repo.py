@@ -154,6 +154,17 @@ class ProductRepository:
         self.conn.commit()
         return cur.rowcount > 0
 
+    def activate(self, sku: str) -> bool:
+        """Activa un producto previamente desactivado"""
+        cur = self.conn.cursor()
+        cur.execute("""
+            UPDATE products
+            SET active = 1, updated_at = datetime('now','localtime')
+            WHERE sku = ?
+        """, (sku,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
     # ---------- Helpers ----------
     def _row_to_product(self, r) -> Product:
         # Esperamos SIEMPRE 12 columnas en el orden unificado

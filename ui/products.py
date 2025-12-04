@@ -11,7 +11,8 @@ class ProductsFrame(ctk.CTkFrame):
         self.parent = parent
         self.repo = ProductRepository(db_connection)
         self.current_sku = None
-
+        self.show_inactive = False 
+        
         self._create_widgets()
         self._load_products()
 
@@ -72,6 +73,22 @@ class ProductsFrame(ctk.CTkFrame):
             command=self._on_search
         ).pack(side="right")
 
+        # Botón para ver inactivos - MEJORADO
+        self.toggle_inactive_btn = ctk.CTkButton(
+            self.search_frame, text="👁️ Ver Inactivos", height=40,
+            fg_color="#6B7280", hover_color="#4B5563", command=self._toggle_inactive_view
+        )
+        self.toggle_inactive_btn.pack(side="right", padx=(5, 5))
+
+        # Contador de productos - NUEVO
+        self.count_label = ctk.CTkLabel(
+            search_container, 
+            text="", 
+            text_color="gray60",
+            font=ctk.CTkFont(size=12)
+        )
+        self.count_label.pack(anchor="w", padx=10, pady=(5, 0))
+
         # Lista
         self.list_frame = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
         self.list_frame.pack(fill="both", expand=True)
@@ -81,6 +98,25 @@ class ProductsFrame(ctk.CTkFrame):
         self.form_frame.grid(row=0, column=1, sticky="nsew")
 
         self._show_placeholder()
+
+    def _toggle_inactive_view(self):
+        """Alterna entre ver solo activos y ver todos los productos"""
+        self.show_inactive = not self.show_inactive
+        
+        if self.show_inactive:
+            self.toggle_inactive_btn.configure(
+                text="✅ Ver Solo Activos",
+                fg_color="#10B981",
+                hover_color="#059669"
+            )
+        else:
+            self.toggle_inactive_btn.configure(
+                text="👁️ Ver Inactivos",
+                fg_color="#6B7280",
+                hover_color="#4B5563"
+            )
+        
+        self._load_products(self.q_var.get().strip())
 
     def _show_placeholder(self):
         self._clear_container(self.form_frame)
@@ -108,12 +144,29 @@ class ProductsFrame(ctk.CTkFrame):
 
     # -------- LISTA --------
     def _load_products(self, query: str = ""):
+        """Carga productos con opción de incluir inactivos"""
         for w in self.list_frame.winfo_children():
             w.destroy()
-        items = self.repo.search(query) if query else self.repo.list_all()
+        
+        # Usar active_only=False cuando show_inactive es True
+        items = self.repo.search(query, active_only=not self.show_inactive) if query else self.repo.list_all(active_only=not self.show_inactive)
+
+        # Actualizar contador - NUEVO
+        active_count = len([p for p in items if p.active])
+        inactive_count = len([p for p in items if not p.active])
+        
+        if self.show_inactive:
+            self.count_label.configure(
+                text=f"Mostrando {len(items)} productos ({active_count} activos, {inactive_count} inactivos)"
+            )
+        else:
+            self.count_label.configure(
+                text=f"Mostrando {len(items)} productos activos"
+            )
 
         if not items:
-            ctk.CTkLabel(self.list_frame, text="Sin productos", text_color="gray60").pack(pady=40)
+            no_products_text = "Sin productos" if not self.show_inactive else "Sin productos (activos o inactivos)"
+            ctk.CTkLabel(self.list_frame, text=no_products_text, text_color="gray60").pack(pady=40)
             return
 
         self.list_frame.grid_columnconfigure((0, 1), weight=1, uniform="col")
@@ -125,49 +178,81 @@ class ProductsFrame(ctk.CTkFrame):
             card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
     def _product_card(self, p: Product):
+        """Crea una tarjeta de producto con indicador de estado"""
         card = ctk.CTkFrame(self.list_frame, corner_radius=10, border_width=1)
+        
+        # Cambiar color de borde para productos inactivos
+        if not p.active:
+            card.configure(border_color="#EF4444", fg_color="#4d4c4c")
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=12, pady=10)
 
+        # Header de la tarjeta con indicador de estado
+        header_frame = ctk.CTkFrame(inner, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 5))
+
         title = f"{p.sku} — {p.description}"
+        
+        # Indicadores visuales
+        indicators = []
         if getattr(p, "is_pos_shortcut", False):
-            title += "   📌 POS"
-
+            indicators.append("📌 POS")
         if getattr(p, "print_logo", False):
-            title += "   🖨️ Logo"            
+            indicators.append("🖨️ Logo")
+        if not p.active:
+            indicators.append("❌ INACTIVO")
 
-        ctk.CTkLabel(inner, text=title, font=ctk.CTkFont(weight="bold")).pack(anchor="w")
+        if indicators:
+            title += "   " + " • ".join(indicators)
+
+        ctk.CTkLabel(header_frame, text=title, font=ctk.CTkFont(weight="bold")).pack(side="left")
+        
+        # Info del producto
         ctk.CTkLabel(
             inner,
             text=f"💲 {p.price:.2f}  •  IVA {int(p.tax_rate*100)}%  •  {p.unit}  •  {p.kind}",
             text_color="gray70"
         ).pack(anchor="w", pady=(2, 8))
 
+        # Botones de acción
         actions = ctk.CTkFrame(inner, fg_color="transparent")
         actions.pack(fill="x")
 
+        # Botón para fijar/desfijar en POS
         text_shortcut = "📌 Desfijar" if p.is_pos_shortcut else "📌 Fijar"
         ctk.CTkButton(
             actions, text=text_shortcut, height=28, width=90,
             fg_color="#F59E0B", command=lambda: self._toggle_shortcut(p)
-        ).pack(side="right", padx=(5, 0))            
+        ).pack(side="right", padx=(5, 0))
 
+        # Botón editar
         ctk.CTkButton(
             actions, text="✏️ Editar", height=28, width=90,
             fg_color="gray40", command=lambda sku=p.sku: self._show_form_edit(sku)
         ).pack(side="right", padx=(5, 0))
 
-        ctk.CTkButton(
-            actions, text=("Desactivar" if p.active else "Activar"), height=28, width=110,
-            fg_color="#EF4444" if p.active else "#10B981",
-            command=lambda sku=p.sku, active=p.active: self._toggle_active(sku, active)
-        ).pack(side="right", padx=(5, 0))
+        # Botón activar/desactivar - MEJORADO
+        if p.active:
+            ctk.CTkButton(
+                actions, text="🚫 Desactivar", height=28, width=110,
+                fg_color="#EF4444", hover_color="#DC2626",
+                command=lambda sku=p.sku: self._toggle_active(sku, True)
+            ).pack(side="right", padx=(5, 0))
+        else:
+            ctk.CTkButton(
+                actions, text="✅ Activar", height=28, width=110,
+                fg_color="#10B981", hover_color="#059669",
+                command=lambda sku=p.sku: self._toggle_active(sku, False)
+            ).pack(side="right", padx=(5, 0))
 
         return card
 
     def _on_search(self, event=None):
         self._load_products(self.q_var.get().strip())
+
+    def _show_all(self, event=None):
+        self._show_all_products()
 
     def _toggle_shortcut(self, p: Product):
         try:
@@ -315,10 +400,37 @@ class ProductsFrame(ctk.CTkFrame):
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar: {e}")
 
-    def _toggle_active(self, sku: str, active: bool):
-        if active:
-            if messagebox.askyesno("Desactivar", "¿Desactivar este producto?"):
-                self.repo.deactivate(sku)
+    def _toggle_active(self, sku: str, currently_active: bool):
+        """Activa o desactiva un producto con confirmación"""
+        product = self.repo.get(sku)
+        if not product:
+            messagebox.showerror("Error", "Producto no encontrado")
+            return
+
+        if currently_active:
+            # Desactivar producto
+            if messagebox.askyesno(
+                "Desactivar Producto", 
+                f"¿Desactivar el producto '{product.description}'?\n\n"
+                f"Este producto ya no estará disponible en el POS."
+            ):
+                try:
+                    self.repo.deactivate(sku)
+                    messagebox.showinfo("Éxito", "Producto desactivado correctamente")
+                    self._load_products(self.q_var.get().strip())
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo desactivar: {e}")
         else:
-            messagebox.showinfo("Activar", "Por simplicidad, la activación manual no está implementada aquí.")
-        self._load_products(self.q_var.get().strip())
+            # Activar producto
+            if messagebox.askyesno(
+                "Activar Producto", 
+                f"¿Activar el producto '{product.description}'?\n\n"
+                f"Este producto estará disponible en el POS."
+            ):
+                try:
+                    self.repo.activate(sku)  # Necesitarás implementar este método
+                    messagebox.showinfo("Éxito", "Producto activado correctamente")
+                    self._load_products(self.q_var.get().strip())
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo activar: {e}")
+

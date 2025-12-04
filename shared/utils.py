@@ -12,6 +12,5 @@ def char_limit_validator(limit: int):
     Devuelve una función validadora para usar con validatecommand en Entries.
     """
     def _validator(P):
-        return len(P) <= limit
-    print(_validator)
+        return len(P) <= limit    
     return _validator

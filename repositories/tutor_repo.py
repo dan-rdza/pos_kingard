@@ -5,28 +5,7 @@ from datetime import datetime
 
 class TutorRepository:
     def __init__(self, db_connection):
-        self.conn = db_connection
-        self.create_table()
-
-    def create_table(self):
-        # Alineado con StudentRepository: alumnos en 'customers(id)'
-        query = """
-        CREATE TABLE IF NOT EXISTS tutors (
-            tutor_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id INTEGER NOT NULL,
-            first_name TEXT NOT NULL,
-            second_name TEXT,
-            relationship TEXT NOT NULL,
-            phone TEXT,
-            email TEXT,
-            is_primary INTEGER DEFAULT 0,
-            active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (student_id) REFERENCES customers (id) ON DELETE CASCADE
-        )
-        """
-        self.conn.execute(query)
-        self.conn.commit()
+        self.conn = db_connection        
 
     def create(self, tutor: Tutor) -> Tutor:
         cursor = self.conn.execute(

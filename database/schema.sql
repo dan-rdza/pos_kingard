@@ -10,9 +10,14 @@ CREATE TABLE IF NOT EXISTS business_config (
   address TEXT NOT NULL,
   phone TEXT NOT NULL,
   thank_you TEXT NOT NULL,
-  tax_rate REAL NOT NULL DEFAULT 0.16,
+  tax_rate REAL NOT NULL DEFAULT 0.00,
   currency TEXT NOT NULL DEFAULT 'MXN'
 );
+
+
+INSERT INTO business_config (id, name, rfc, address, phone, thank_you) VALUES
+(1, 'Prescolar Libertad y Creatividad A.C.', 'LCR030414IB8', 'El Túnel 103 B, Col. Ejido La Joya, León, Gto. Mx.', '477-198-31-64', '¡Gracias por su preferencia!');
+
 
 -- =========================================
 -- CATÁLOGOS: grades / groups / shifts
@@ -38,30 +43,30 @@ CREATE TABLE IF NOT EXISTS shifts (
 -- =========================================
 -- TABLA: parents
 -- =========================================
-CREATE TABLE IF NOT EXISTS parents (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  first_name TEXT NOT NULL,
-  second_name TEXT,
-  relationship TEXT NOT NULL DEFAULT 'padre', -- 'madre', 'padre', 'tutor'
-  email TEXT,
-  phone TEXT NOT NULL,
-  mobile_phone TEXT,
-  address TEXT,
-  active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
+-- CREATE TABLE IF NOT EXISTS parents (
+--   id INTEGER PRIMARY KEY AUTOINCREMENT,
+--   first_name TEXT NOT NULL,
+--   second_name TEXT,
+--   relationship TEXT NOT NULL DEFAULT 'padre', -- 'madre', 'padre', 'tutor'
+--   email TEXT,
+--   phone TEXT,
+--   mobile_phone TEXT NOT NULL,
+--   address TEXT,
+--   active INTEGER NOT NULL DEFAULT 1,
+--   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+--   updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+-- );
 
-CREATE TRIGGER IF NOT EXISTS trg_parents_updated
-AFTER UPDATE ON parents
-FOR EACH ROW BEGIN
-  UPDATE parents
-  SET updated_at = datetime('now','localtime')
-  WHERE id = NEW.id;
-END;
+-- CREATE TRIGGER IF NOT EXISTS trg_parents_updated
+-- AFTER UPDATE ON parents
+-- FOR EACH ROW BEGIN
+--   UPDATE parents
+--   SET updated_at = datetime('now','localtime')
+--   WHERE id = NEW.id;
+-- END;
 
-CREATE INDEX IF NOT EXISTS idx_parents_phone ON parents(phone);
-CREATE INDEX IF NOT EXISTS idx_parents_name ON parents(second_name, first_name);
+-- CREATE INDEX IF NOT EXISTS idx_parents_phone ON parents(phone);
+-- CREATE INDEX IF NOT EXISTS idx_parents_name ON parents(second_name, first_name);
 
 -- =========================================
 -- TABLA: customers
@@ -96,22 +101,44 @@ CREATE INDEX IF NOT EXISTS idx_customers_enrollment ON customers(enrollment);
 CREATE INDEX IF NOT EXISTS idx_customers_nombre ON customers(second_name, first_name);
 CREATE INDEX IF NOT EXISTS idx_customers_salon ON customers(grade_id, group_id, shift_id);
 
+
+
+-- =========================================
+-- TABLA: tutors
+-- =========================================
+CREATE TABLE IF NOT EXISTS tutors (
+  tutor_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  first_name TEXT NOT NULL,
+  second_name TEXT,
+  relationship TEXT NOT NULL, -- Padre, Madre, Tutor, Abuelo, etc.
+  phone      TEXT,
+  email      TEXT,
+  is_primary INTEGER NOT NULL DEFAULT 0,
+  active     INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tutors_student ON tutors(student_id);
+CREATE INDEX IF NOT EXISTS idx_tutors_name ON tutors(first_name, second_name);
+
+
 -- =========================================
 -- TABLA: customer_parents
 -- =========================================
-CREATE TABLE IF NOT EXISTS customer_parents (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-  parent_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
-  is_primary INTEGER NOT NULL DEFAULT 0,
-  can_pickup INTEGER NOT NULL DEFAULT 1,
-  emergency_contact INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  UNIQUE(customer_id, parent_id)
-);
+-- CREATE TABLE IF NOT EXISTS customer_parents (
+--   id INTEGER PRIMARY KEY AUTOINCREMENT,
+--   customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+--   parent_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
+--   is_primary INTEGER NOT NULL DEFAULT 0,
+--   can_pickup INTEGER NOT NULL DEFAULT 1,
+--   emergency_contact INTEGER NOT NULL DEFAULT 0,
+--   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+--   UNIQUE(customer_id, parent_id)
+-- );
 
-CREATE INDEX IF NOT EXISTS idx_customer_parents_customer ON customer_parents(customer_id);
-CREATE INDEX IF NOT EXISTS idx_customer_parents_parent ON customer_parents(parent_id);
+-- CREATE INDEX IF NOT EXISTS idx_customer_parents_customer ON customer_parents(customer_id);
+-- CREATE INDEX IF NOT EXISTS idx_customer_parents_parent ON customer_parents(parent_id);
 
 -- =========================================
 -- TABLA: sellers
@@ -141,6 +168,13 @@ END;
 
 CREATE INDEX IF NOT EXISTS idx_sellers_nombre ON sellers(second_name, first_name);
 CREATE INDEX IF NOT EXISTS idx_sellers_username ON sellers(username);
+
+
+INSERT INTO sellers (employee_code, first_name, second_name, job_title, username, password_hash, role) VALUES
+('SUPERUSR', 'SUPER', 'USER', 'SUPER USER', 'SUPERUSR', 'Sup3r2025#', 'super'),
+('USR01', 'VICTOR MANUEL', 'MATA', 'ADMINISTRADOR', 'VMATA', 'Sistema*', 'admin'),
+('USR02', 'RUTH', 'ALDERETE', 'ADMINISTRADOR', 'RUTH', 'Sistema*', 'admin');
+
 
 -- =========================================
 -- CATÁLOGO: categories y products

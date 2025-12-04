@@ -15,14 +15,14 @@ class MainMenu(ctk.CTkFrame):
 
         ctk.CTkLabel(
             header,
-            text=f"👤 {self.user['first_name']} {self.user['second_name']}",
-            font=ctk.CTkFont(size=18, weight="bold")
+            text=f"👋 Hola, {self.user['first_name']} {self.user['second_name']}",
+            font=ctk.CTkFont(size=15, weight="bold")
         ).pack()
 
         ctk.CTkLabel(
             header,
-            text=f"Rol: {self.user['role'].capitalize()}",
-            font=ctk.CTkFont(size=13),
+            text=f"🛡️ {self.user['job_title'].capitalize()} | {self.user['role'].capitalize()}",
+            font=ctk.CTkFont(size=14),
             text_color="gray70"
         ).pack()
 
@@ -50,9 +50,10 @@ class MainMenu(ctk.CTkFrame):
             ("👥", "Gestión de Alumnos", self.parent.show_students, 0, 0),
             ("📦", "Productos/Servicios", self.parent.show_products, 0, 1),
             ("💰", "Punto de Venta", self.parent.show_pos, 1, 0),
-            ("📊", "Reportes", self.parent.show_reports, 1, 1),
-            ("⚙️", "Configuración", self.parent.show_settings, 2, 0),
-            ("🚪", "Cerrar Sesión", self.parent.logout, 2, 1)
+            ("🏫", "Catálogos", self.parent.show_catalogs, 1,1),
+            # ("📊", "Reportes", self.parent.show_reports, 1, 1),
+            # ("⚙️", "Configuración", self.parent.show_settings, 2, 0),
+            ("🚪", "Cerrar Sesión", self.parent.logout, 2, 0)
         ]
 
         for icon, text, command, row, col in buttons:

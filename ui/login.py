@@ -61,7 +61,7 @@ class LoginFrame(ctk.CTkFrame):
 
         footer_frame = ctk.CTkFrame(inner_container, fg_color="transparent")
         footer_frame.grid(row=2, column=0, sticky="ew")
-        ctk.CTkLabel(footer_frame, text="© 2024 POS KinGard - v1.0", font=ctk.CTkFont(size=10), text_color="gray60").pack(side="right")
+        ctk.CTkLabel(footer_frame, text="© 2025 POS KinGard - v1.0", font=ctk.CTkFont(size=10), text_color="gray60").pack(side="right")
         self.parent.bind("<Control-Shift-S>", self._superuser_shortcut)
 
 
@@ -77,7 +77,8 @@ class LoginFrame(ctk.CTkFrame):
                 "employee_code": "SUPERUSER",
                 "first_name": "Super",
                 "second_name": "Usuario",
-                "role": "admin"
+                "role": "admin",
+                "job_title": "ADMINISTRADOR DEL SISTEMA",
             }
             self.parent.current_user = user
             self.parent.show_main_menu()
@@ -99,7 +100,8 @@ class LoginFrame(ctk.CTkFrame):
                 "employee_code": "SUPERUSER",
                 "first_name": "Super",
                 "second_name": "Usuario",
-                "role": "admin"
+                "role": "admin",
+                "job_title": "ADMINISTRADOR DEL SISTEMA"
             }
             self.parent.current_user = user
             self.parent.show_main_menu()

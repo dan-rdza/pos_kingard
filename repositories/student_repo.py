@@ -129,6 +129,21 @@ class StudentRepository:
         except sqlite3.Error:
             return False
 
+    def activate(self, student_id: int) -> bool:
+        """Activa un alumno previamente desactivado"""
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                UPDATE customers SET active = 1, updated_at = datetime('now', 'localtime')
+                WHERE id = ?
+            ''', (student_id,))
+            
+            self.conn.commit()
+            return cursor.rowcount > 0
+            
+        except sqlite3.Error:
+            return False
+
     def get_related_parents(self, student_id: int) -> List[Dict[str, Any]]:
         cursor = self.conn.cursor()
         cursor.execute('''

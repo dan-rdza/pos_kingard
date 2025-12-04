@@ -1,4 +1,7 @@
+# ui/pos.py
+
 import customtkinter as ctk
+from datetime import datetime
 from tkinter import messagebox
 from repositories.student_repo import StudentRepository
 from repositories.product_repo import ProductRepository
@@ -27,17 +30,33 @@ class POSFrame(ctk.CTkFrame):
     # ---------- Layout principal ----------
     def _build_ui(self):
         self.grid_columnconfigure(0, weight=2, uniform="col")   # Alumno
-        self.grid_columnconfigure(1, weight=3, uniform="col")   # Productos
-        self.grid_columnconfigure(2, weight=3, uniform="col")   # Carrito
+        self.grid_columnconfigure(1, weight=2, uniform="col")   # Productos
+        self.grid_columnconfigure(2, weight=4, uniform="col")   # Carrito
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=1)
 
         # Header
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, columnspan=3, sticky="ew", padx=15, pady=(10, 0))
+        
+        ctk.CTkLabel(header, text="💰 Punto de Venta", font=ctk.CTkFont(size=22, weight="bold")).pack(side="left")      
 
-        ctk.CTkLabel(header, text="💰 Punto de Venta", font=ctk.CTkFont(size=22, weight="bold")).pack(side="left")
-        ctk.CTkButton(header, text="⬅️ Menú", height=35, fg_color="gray50", command=self._back_to_menu).pack(side="right")
+                # Frame para elementos derechos
+        right_frame = ctk.CTkFrame(header, fg_color="transparent")
+        right_frame.pack(side="right")
+
+        # Reloj (actualizable)
+        self.clock_label = ctk.CTkLabel(right_frame, text="", 
+                                       font=ctk.CTkFont(size=13, weight="bold"))
+        self.clock_label.pack(side="left", padx=(0, 10))
+        
+        # Botón menú
+        ctk.CTkButton(right_frame, text="⬅️ Menú", height=35, fg_color="gray50", 
+                     command=self._back_to_menu).pack(side="right")
+        
+        # Iniciar reloj
+        self._update_clock()
+        
 
         # Paneles
         self._build_student_panel()
@@ -84,7 +103,6 @@ class POSFrame(ctk.CTkFrame):
     def _select_student(self, student):
         self.selected_student = student
         self.student_card_label.configure(text=f"Matrícula: {student.enrollment}\n{student.first_name} {student.second_name or ''}")
-
 
     # ---------- Panel productos ----------
     def _build_products_panel(self):
@@ -141,7 +159,7 @@ class POSFrame(ctk.CTkFrame):
             price = p["price"] if isinstance(p, dict) else p.price
             ctk.CTkButton(
                 grid,
-                text=f"{desc}\n💲{price:.2f}",
+                text=f"{desc}\n💲{price:,.2f}",
                 command=lambda prod=p: self._add_to_cart(prod),
                 height=60, fg_color="#374151", hover_color="#2563EB"
             ).grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
@@ -159,7 +177,7 @@ class POSFrame(ctk.CTkFrame):
             return
 
         for p in products[:5]:
-            text = f"{p.sku} - {p.description} (${p.price:.2f})"
+            text = f"{p.sku} - {p.description} (${p.price:,.2f})"
             ctk.CTkButton(
                 self.product_results_frame, text=text,
                 command=lambda prod=p: self._add_to_cart(prod),
@@ -203,9 +221,10 @@ class POSFrame(ctk.CTkFrame):
     # ---------- Carrito ----------    
     def _add_to_cart(self, product):
         sku = product["sku"] if isinstance(product, dict) else product.sku
+        price = product["price"] if isinstance(product, dict) else product.price        
         found = False
         for item in self.cart:
-            if item["sku"] == sku:
+            if item["sku"] == sku and item["price"] == price:
                 item["qty"] += 1
                 found = True
                 break
@@ -232,36 +251,68 @@ class POSFrame(ctk.CTkFrame):
         subtotal = 0
         tax = 0
 
-        # Encabezado de tabla
-        header_frame = ctk.CTkFrame(self.cart_frame, fg_color="transparent")
-        header_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
-        ctk.CTkLabel(header_frame, text="Descripción", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, sticky="w", padx=5)
-        ctk.CTkLabel(header_frame, text="Cant", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=1)
-        ctk.CTkLabel(header_frame, text="P.U.", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=2)
-        ctk.CTkLabel(header_frame, text="Importe", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=3)
-        header_frame.pack(fill="x", pady=(0, 5))
+        # Crear contenedor principal con grid
+        table_container = ctk.CTkFrame(self.cart_frame, fg_color="transparent")
+        table_container.pack(fill="both", expand=True)
+        
+        # Configurar columnas con anchos fijos/proporcionales
+        table_container.grid_columnconfigure(0, weight=4, minsize=200)  # Descripción
+        table_container.grid_columnconfigure(1, weight=1, minsize=60)   # Cantidad
+        table_container.grid_columnconfigure(2, weight=1, minsize=80)   # Precio Unitario
+        table_container.grid_columnconfigure(3, weight=1, minsize=80)   # Importe
+        table_container.grid_columnconfigure(4, weight=1, minsize=60)   # Editar
+        table_container.grid_columnconfigure(5, weight=1, minsize=60)   # Eliminar
+
+        # Encabezados - Fila 0
+        row = 0
+        ctk.CTkLabel(table_container, text="Descripción", font=ctk.CTkFont(size=13, weight="bold"), 
+                    anchor="w").grid(row=row, column=0, sticky="ew", padx=5, pady=(0, 10))
+        ctk.CTkLabel(table_container, text="Cant", font=ctk.CTkFont(size=13, weight="bold"), 
+                    anchor="center").grid(row=row, column=1, sticky="ew", padx=5, pady=(0, 10))
+        ctk.CTkLabel(table_container, text="P.U.", font=ctk.CTkFont(size=13, weight="bold"), 
+                    anchor="center").grid(row=row, column=2, sticky="ew", padx=5, pady=(0, 10))
+        ctk.CTkLabel(table_container, text="Importe", font=ctk.CTkFont(size=13, weight="bold"), 
+                    anchor="center").grid(row=row, column=3, sticky="ew", padx=5, pady=(0, 10))
+        ctk.CTkLabel(table_container, text="Acciones", font=ctk.CTkFont(size=13, weight="bold"), 
+                    anchor="center").grid(row=row, column=4, columnspan=2, sticky="ew", padx=5, pady=(0, 10))
+
+        
+        row += 1
 
         for idx, item in enumerate(self.cart):
-            frame = ctk.CTkFrame(self.cart_frame, corner_radius=6)
-            frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+            # Acortar descripción si es muy larga
+            description = item["description"]
+            if len(description) > 35:
+                description = description[:32] + "..."
 
-            # Fila tabular
-            ctk.CTkLabel(frame, text=item["description"], font=ctk.CTkFont(size=13)).grid(row=0, column=0, sticky="w", padx=5)
-            ctk.CTkLabel(frame, text=f"{item['qty']}", font=ctk.CTkFont(size=13)).grid(row=0, column=1)
-            ctk.CTkLabel(frame, text=f"{item['price']:.2f}", font=ctk.CTkFont(size=13)).grid(row=0, column=2)
-            ctk.CTkLabel(frame, text=f"{item['qty'] * item['price']:.2f}", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=3)
+            # Fila de producto
+            ctk.CTkLabel(table_container, text=description, font=ctk.CTkFont(size=13), 
+                        anchor="w").grid(row=row, column=0, sticky="ew", padx=5, pady=8)
+            ctk.CTkLabel(table_container, text=f"{item['qty']}", font=ctk.CTkFont(size=13), 
+                        anchor="center").grid(row=row, column=1, sticky="ew", padx=5, pady=8)
+            ctk.CTkLabel(table_container, text=f"${item['price']:,.2f}", font=ctk.CTkFont(size=13), 
+                        anchor="center").grid(row=row, column=2, sticky="ew", padx=5, pady=8)
+            ctk.CTkLabel(table_container, text=f"${item['qty'] * item['price']:,.2f}", 
+                        font=ctk.CTkFont(size=13, weight="bold"), anchor="center").grid(row=row, column=3, sticky="ew", padx=5, pady=8)
 
-            ctk.CTkButton(frame, text="✏️", width=40, fg_color="gray40", command=lambda i=idx: self._edit_price(i)).grid(row=0, column=4, padx=2)
-            ctk.CTkButton(frame, text="❌", width=40, fg_color="#EF4444", command=lambda i=idx: self._remove_item(i)).grid(row=0, column=5, padx=2)
-
-            frame.pack(fill="x", pady=2, padx=5)
+            # Frame para botones (para mejor alineación)
+            btn_frame = ctk.CTkFrame(table_container, fg_color="transparent", width=120)
+            btn_frame.grid(row=row, column=4, columnspan=2, sticky="ew", padx=5)
+            btn_frame.grid_columnconfigure((0, 1), weight=1)
+            
+            ctk.CTkButton(btn_frame, text="✏️", width=35, height=30, fg_color="gray40",
+                        command=lambda i=idx: self._edit_price(i)).grid(row=0, column=0, padx=2)
+            ctk.CTkButton(btn_frame, text="❌", width=35, height=30, fg_color="#EF4444",
+                        command=lambda i=idx: self._remove_item(i)).grid(row=0, column=1, padx=2)
+            
+            row += 1
 
             subtotal += item["price"] * item["qty"]
             tax += item["price"] * item["qty"] * item["tax_rate"]
 
         total = subtotal + tax
-        self.label_totals.configure(text=f"Subtotal: ${subtotal:.2f}   IVA: ${tax:.2f}")
-        self.label_total_final.configure(text=f"Total: ${total:.2f}")
+        self.label_totals.configure(text=f"Subtotal: ${subtotal:,.2f}   IVA: ${tax:,.2f}")
+        self.label_total_final.configure(text=f"Total: ${total:,.2f}")
 
     def _edit_price(self, index):
         item = self.cart[index]
@@ -274,7 +325,7 @@ class POSFrame(ctk.CTkFrame):
         popup.focus()
 
         ctk.CTkLabel(popup, text=f"{item['description']}", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=10)
-        new_price_var = ctk.StringVar(value=f"{item['price']:.2f}")
+        new_price_var = ctk.StringVar(value=f"{item['price']:,.2f}")
         entry = ctk.CTkEntry(popup, textvariable=new_price_var, justify="center")
         entry.pack(pady=5)
         entry.focus()
@@ -333,11 +384,15 @@ class POSFrame(ctk.CTkFrame):
 
             # Business config debería venir de repositorio
             business = {
-                "name": "KINDERGARTEN REYES",
-                "rfc": "XAXX010101000",
-                "address": "Av. Siempre Viva 123, CDMX",
-                "phone": "(55) 1234-5678",
-                "footer": "Este ticket no es comprobante fiscal"
+                "nombre": "LIBERTAD Y CREATIVIDAD",
+                "title": "PREESCOLAR LIBERTAD Y CREATIVIDAD A.C",
+                "clave": "CCT 11PJN08 39V",
+                "eslogan": "Educar con el corazón para llegar a la razón",
+                "rfc": "LCR030414IB8",
+                "direccion": "EL TUNEL 103-B, LA JOYA EJIDO, LEON, GTO. MX.",
+                "contacto": "TEL(S). 477-449-7752 / 477-290-8432",
+                "notas01": "Conserve su ticket para cualquier aclaración.",
+                "notas02": "Este ticket no es comprobante fiscal."
             }
 
             printer.print_ticket(
@@ -360,3 +415,51 @@ class POSFrame(ctk.CTkFrame):
             main_app.set_window_size("menu")
         from ui.menu import MainMenu
         MainMenu(self.parent, self.parent.current_user).pack(fill="both", expand=True)
+
+
+    # ---------- Clock ----------
+    def _format_datetime(self):
+        """Formatea la fecha y hora al formato deseado"""
+        now = datetime.now()
+        
+        # Diccionarios para traducción
+        days = {
+            'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
+            'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado',
+            'Sunday': 'Domingo'
+        }
+        
+        months = {
+            'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo',
+            'April': 'Abril', 'May': 'Mayo', 'June': 'Junio',
+            'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre',
+            'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'
+        }
+        
+        # Obtener nombre del día y mes en español
+        day_name_en = now.strftime("%A")
+        month_name_en = now.strftime("%B")
+        
+        day_name_es = days.get(day_name_en, day_name_en)
+        month_name_es = months.get(month_name_en, month_name_en)
+        
+        # Formatear hora en formato 12 horas con a.m./p.m.
+        hour_12 = now.strftime("%I").lstrip('0')  # Hora en 12h sin cero inicial
+        minute = now.strftime("%M")
+        second = now.strftime("%S")
+        am_pm = now.strftime("%p").lower()  # "AM" o "PM" en minúsculas
+        
+        # Convertir a español
+        am_pm_es = "a.m." if am_pm == "am" else "p.m."
+        
+        # Construir el string final
+        formatted = f"{day_name_es}, {now.day} de {month_name_es} del {now.year} {hour_12}:{minute}:{second} {am_pm_es}"
+        
+        return formatted
+    
+    def _update_clock(self):
+        """Actualiza el reloj cada segundo"""
+        current_time = self._format_datetime()
+        self.clock_label.configure(text=current_time)
+        # Programar próxima actualización en 1 segundo
+        self.clock_label.after(1000, self._update_clock) 

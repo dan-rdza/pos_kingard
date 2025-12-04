@@ -1,10 +1,11 @@
 # main.py
 import customtkinter as ctk
-from database import Database
+from database.database import DatabaseManager
 from ui.menu import MainMenu
 from ui.login import LoginFrame
 from ui.students import StudentsFrame
 from ui.products import ProductsFrame
+from ui.educational_catalogs import EducationalCatalogsFrame
 from ui.pos import POSFrame
 
 ctk.set_appearance_mode("dark")
@@ -17,7 +18,7 @@ class App(ctk.CTk):
         self.title("POS KinGard")
         self.after(100, lambda: self.wm_state("zoomed"))
 
-        self.db = Database()
+        self.db = DatabaseManager()
         self.current_user = None
 
         self.show_login()
@@ -50,8 +51,10 @@ class App(ctk.CTk):
         self.clear_view()
         POSFrame(self, self.db.get_connection()).pack(fill="both", expand=True)
 
-    def show_reports(self):
-        print("Abriendo reportes...")
+    def show_catalogs(self):
+        self.clear_view()
+        frame = EducationalCatalogsFrame(self, self.db.get_connection())
+        frame.pack(fill="both", expand=True)        
 
     def show_settings(self):
         print("Abriendo configuración...")

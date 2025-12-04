@@ -16,6 +16,7 @@ class StudentsFrame(ctk.CTkFrame):
         self.repo = StudentRepository(db_connection)
         self.tutor_repo = TutorRepository(db_connection)
         self.current_student = None
+        self.show_inactive = False  # Nuevo estado para controlar la vista
 
         self.create_widgets()
         self.load_students()
@@ -82,6 +83,22 @@ class StudentsFrame(ctk.CTkFrame):
             command=self.on_search, height=40, width=100
         ).pack(side="right")
 
+        # Botón para ver inactivos - NUEVO
+        self.toggle_inactive_btn = ctk.CTkButton(
+            self.search_frame, text="👁️ Ver Inactivos", height=40, width=120,
+            fg_color="#6B7280", hover_color="#4B5563", command=self._toggle_inactive_view
+        )
+        self.toggle_inactive_btn.pack(side="right", padx=(5, 10))
+
+        # Contador de alumnos - NUEVO
+        self.count_label = ctk.CTkLabel(
+            self.search_container, 
+            text="", 
+            text_color="gray60",
+            font=ctk.CTkFont(size=12)
+        )
+        self.count_label.pack(anchor="w", padx=10, pady=(5, 0))
+
         # Lista
         self.list_frame = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
         self.list_frame.pack(fill="both", expand=True)
@@ -91,6 +108,25 @@ class StudentsFrame(ctk.CTkFrame):
         self.form_frame.grid(row=0, column=1, sticky="nsew")
 
         self._show_placeholder()
+
+    def _toggle_inactive_view(self):
+        """Alterna entre ver solo activos y ver todos los alumnos"""
+        self.show_inactive = not self.show_inactive
+        
+        if self.show_inactive:
+            self.toggle_inactive_btn.configure(
+                text="✅ Ver Solo Activos",
+                fg_color="#10B981",
+                hover_color="#059669"
+            )
+        else:
+            self.toggle_inactive_btn.configure(
+                text="👁️ Ver Inactivos",
+                fg_color="#6B7280",
+                hover_color="#4B5563"
+            )
+        
+        self.load_students()
 
     def _show_placeholder(self):
         self._clear_container(self.form_frame)
@@ -111,10 +147,26 @@ class StudentsFrame(ctk.CTkFrame):
         for w in self.list_frame.winfo_children():
             w.destroy()
 
-        students = self.repo.get_all()
+        # Usar active_only=False cuando show_inactive es True
+        students = self.repo.get_all(active_only=not self.show_inactive)
+
+        # Actualizar contador - NUEVO
+        active_count = len([s for s in students if s.active])
+        inactive_count = len([s for s in students if not s.active])
+        
+        if self.show_inactive:
+            self.count_label.configure(
+                text=f"Mostrando {len(students)} alumnos ({active_count} activos, {inactive_count} inactivos)"
+            )
+        else:
+            self.count_label.configure(
+                text=f"Mostrando {len(students)} alumnos activos"
+            )
+
         if not students:
+            no_students_text = "No hay alumnos registrados" if not self.show_inactive else "No hay alumnos (activos o inactivos)"
             ctk.CTkLabel(
-                self.list_frame, text="No hay alumnos registrados",
+                self.list_frame, text=no_students_text,
                 text_color="gray60", font=ctk.CTkFont(size=14)
             ).pack(pady=50)
             return
@@ -136,7 +188,21 @@ class StudentsFrame(ctk.CTkFrame):
         for widget in self.list_frame.winfo_children():
             widget.destroy()
         
-        students = self.repo.search(query)
+        # Pasar active_only=False cuando se muestran inactivos
+        students = self.repo.search(query, active_only=not self.show_inactive)
+        
+        # Actualizar contador en búsqueda también
+        active_count = len([s for s in students if s.active])
+        inactive_count = len([s for s in students if not s.active])
+        
+        if self.show_inactive:
+            self.count_label.configure(
+                text=f"Encontrados {len(students)} alumnos ({active_count} activos, {inactive_count} inactivos)"
+            )
+        else:
+            self.count_label.configure(
+                text=f"Encontrados {len(students)} alumnos activos"
+            )
         
         if not students:
             ctk.CTkLabel(
@@ -166,15 +232,52 @@ class StudentsFrame(ctk.CTkFrame):
 
     def create_student_card(self, student):
         card = ctk.CTkFrame(self.list_frame, corner_radius=10, border_width=1)
+        
+        # Cambiar color de borde para alumnos inactivos
+        if not student.active:
+            card.configure(border_color="#EF4444", fg_color="#FEF2F2")
 
         info_frame = ctk.CTkFrame(card, fg_color="transparent")
         info_frame.pack(fill="both", expand=True, padx=15, pady=10)
 
+        # Header con indicadores
+        header_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 5))
+
+        title_text = f"{student.enrollment}"
+        if not student.active:
+            title_text += " ❌ INACTIVO"
+
         ctk.CTkLabel(
-            info_frame,
-            text=f"{student.enrollment}",
+            header_frame,
+            text=title_text,
             font=ctk.CTkFont(size=16, weight="bold")
         ).pack(anchor="w")
+
+        # Información educativa si está disponible
+        educational_info = []
+        if student.grade_id:
+            grade_name = self._get_educational_name(student.grade_id, 'grade')
+            if grade_name:
+                educational_info.append(f"🎓 {grade_name}")
+        
+        if student.group_id:
+            group_name = self._get_educational_name(student.group_id, 'group')
+            if group_name:
+                educational_info.append(f"👥 {group_name}")
+        
+        if student.shift_id:
+            shift_name = self._get_educational_name(student.shift_id, 'shift')
+            if shift_name:
+                educational_info.append(f"⏰ {shift_name}")
+        
+        if educational_info:
+            ctk.CTkLabel(
+                info_frame,
+                text=" • ".join(educational_info),
+                font=ctk.CTkFont(size=12),
+                text_color="#3B82F6"
+            ).pack(anchor="w", pady=(2, 0))
 
         ctk.CTkLabel(
             info_frame,
@@ -202,8 +305,7 @@ class StudentsFrame(ctk.CTkFrame):
                 text=f"📱{primary_tutor.formart_phonenumber()}",
                 font=ctk.CTkFont(size=12), text_color="gray60"
             ).pack(anchor="w", pady=(2, 0))
-            
-
+                
         action_frame = ctk.CTkFrame(card, fg_color="transparent")
         action_frame.pack(fill="x", padx=15, pady=(5, 10))
 
@@ -220,7 +322,50 @@ class StudentsFrame(ctk.CTkFrame):
             height=30, width=80, fg_color="#2b3d78"
         ).pack(side="right", padx=(5, 0))
 
+        # Botón activar/desactivar
+        if student.active:
+            ctk.CTkButton(
+                action_frame, text="🚫 Desactivar", height=30, width=100,
+                fg_color="#EF4444", hover_color="#DC2626",
+                command=lambda s=student: self._toggle_active(s, True)
+            ).pack(side="right", padx=(5, 0))
+        else:
+            ctk.CTkButton(
+                action_frame, text="✅ Activar", height=30, width=100,
+                fg_color="#10B981", hover_color="#059669",
+                command=lambda s=student: self._toggle_active(s, False)
+            ).pack(side="right", padx=(5, 0))
+
         return card
+
+    def _toggle_active(self, student: Student, currently_active: bool):
+        """Activa o desactiva un alumno con confirmación"""
+        if currently_active:
+            # Desactivar alumno
+            if messagebox.askyesno(
+                "Desactivar Alumno", 
+                f"¿Desactivar al alumno '{student.first_name} {student.second_name or ''}'?\n\n"
+                f"Este alumno ya no estará disponible en el sistema."
+            ):
+                try:
+                    self.repo.deactivate(student.student_id)
+                    messagebox.showinfo("Éxito", "Alumno desactivado correctamente")
+                    self.load_students()
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo desactivar: {e}")
+        else:
+            # Activar alumno
+            if messagebox.askyesno(
+                "Activar Alumno", 
+                f"¿Activar al alumno '{student.first_name} {student.second_name or ''}'?\n\n"
+                f"Este alumno estará disponible en el sistema."
+            ):
+                try:
+                    self.repo.activate(student.student_id)  # Necesitarás implementar este método
+                    messagebox.showinfo("Éxito", "Alumno activado correctamente")
+                    self.load_students()
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo activar: {e}")
 
     def show_new_form(self):
         self.current_student = None
@@ -255,26 +400,48 @@ class StudentsFrame(ctk.CTkFrame):
             widget.grid(row=row, column=0, sticky="ew", pady=(0, 5))
             row += 1
 
-
         vcmd = (self.register(char_limit_validator(18)), '%P')
-
-
+        
+        # Obtener opciones educativas
+        grade_options, group_options, shift_options = self._get_educational_options()
+        
+        # Campos existentes
         self.enrollment_entry = ctk.CTkEntry(form, height=40, placeholder_text="Matrícula")
         self.first_name_entry = ctk.CTkEntry(form, height=40, placeholder_text="Nombre")
         self.second_name_entry = ctk.CTkEntry(form, height=40, placeholder_text="Apellido")
+        
+        # NUEVOS CAMPOS EDUCATIVOS
+        self.grade_var = ctk.StringVar(value="")
+        self.group_var = ctk.StringVar(value="") 
+        self.shift_var = ctk.StringVar(value="")
+        
+        self.grade_cb = ctk.CTkComboBox(form, values=grade_options, variable=self.grade_var, height=40)
+        self.group_cb = ctk.CTkComboBox(form, values=group_options, variable=self.group_var, height=40)
+        self.shift_cb = ctk.CTkComboBox(form, values=shift_options, variable=self.shift_var, height=40)
+
         self.curp_entry = ctk.CTkEntry(form, height=40, placeholder_text="CURP",validate="key", validatecommand=vcmd)
         self.gender_var = ctk.StringVar(value="")
-        gender_cb = ctk.CTkComboBox(form, values=["", "M", "F"], variable=self.gender_var, height=40)
+        self.gender_cb = ctk.CTkComboBox(form, values=["", "M", "F"], variable=self.gender_var, height=40)
         self.birth_date_entry = ctk.CTkEntry(form, height=40, placeholder_text="YYYY-MM-DD")
         self.pay_ref_entry = ctk.CTkEntry(form, height=40, placeholder_text="Referencia de pago")
         self.address_entry = ctk.CTkEntry(form, height=40, placeholder_text="Dirección")
-        
 
         add_field("Matrícula *", self.enrollment_entry)
         add_field("Nombre *", self.first_name_entry)
         add_field("Apellido", self.second_name_entry)
+        
+        # Sección educativa
+        ctk.CTkLabel(form, text="📚 Información Educativa", 
+                    font=ctk.CTkFont(weight="bold", size=14)).grid(row=row, column=0, sticky="w", pady=(15, 5))
+        row += 1
+        
+        add_field("Grado", self.grade_cb)
+        add_field("Grupo", self.group_cb)
+        add_field("Turno", self.shift_cb)
+        
+        # Resto de campos
         add_field("CURP", self.curp_entry)
-        add_field("Género", gender_cb)
+        add_field("Género", self.gender_cb)
         add_field("Fecha de nacimiento", self.birth_date_entry)
         add_field("Referencia de pago", self.pay_ref_entry)
         add_field("Dirección", self.address_entry)
@@ -302,6 +469,23 @@ class StudentsFrame(ctk.CTkFrame):
         self.first_name_entry.insert(0, student.first_name)
         if student.second_name:
             self.second_name_entry.insert(0, student.second_name)
+        
+        # Llenar campos educativos
+        if student.grade_id:
+            grade_name = self._get_educational_name(student.grade_id, 'grade')
+            if grade_name:
+                self.grade_var.set(f"{grade_name} ({student.grade_id})")
+        
+        if student.group_id:
+            group_name = self._get_educational_name(student.group_id, 'group')
+            if group_name:
+                self.group_var.set(f"{group_name} ({student.group_id})")
+        
+        if student.shift_id:
+            shift_name = self._get_educational_name(student.shift_id, 'shift')
+            if shift_name:
+                self.shift_var.set(f"{shift_name} ({student.shift_id})")
+        
         if student.curp:
             self.curp_entry.insert(0, student.curp)
         if student.gender:
@@ -315,11 +499,24 @@ class StudentsFrame(ctk.CTkFrame):
 
     def save_student(self):
         try:
+            # Extraer IDs de los combobox (formato: "Nombre (ID)")
+            grade_text = self.grade_var.get()
+            group_text = self.group_var.get()
+            shift_text = self.shift_var.get()
+            
+            # Extraer el ID del texto (ej: "Primer Grado (1)" -> 1)
+            grade_id = int(grade_text.split('(')[-1].rstrip(')')) if grade_text and '(' in grade_text else None
+            group_id = int(group_text.split('(')[-1].rstrip(')')) if group_text and '(' in grade_text else None
+            shift_id = int(shift_text.split('(')[-1].rstrip(')')) if shift_text and '(' in grade_text else None
+
             student_data = {
                 'enrollment': self.enrollment_entry.get().strip(),
                 'first_name': self.first_name_entry.get().strip(),
                 'second_name': self.second_name_entry.get().strip() or None,
                 'address': self.address_entry.get().strip() or None,
+                'grade_id': grade_id,
+                'group_id': group_id,
+                'shift_id': shift_id,
                 'gender': self.gender_var.get() or None,
                 'birth_date': self.birth_date_entry.get().strip() or None,
                 'curp': self.curp_entry.get().strip() or None,
@@ -350,3 +547,37 @@ class StudentsFrame(ctk.CTkFrame):
 
         # Crear nueva pantalla de tutores, independiente
         TutorsFrame(self.parent, self.db_connection, student).pack(fill="both", expand=True)
+
+    def _get_educational_options(self):
+        """Obtiene las opciones para los combobox educativos"""
+        from repositories.educational_repo import EducationalRepository
+        repo = EducationalRepository(self.db_connection)
+        
+        grades = repo.get_all_grades()
+        groups = repo.get_all_groups() 
+        shifts = repo.get_all_shifts()
+        
+        grade_options = [""] + [f"{grade.name} ({grade.id})" for grade in grades]
+        group_options = [""] + [f"{group.name} ({group.id})" for group in groups]
+        shift_options = [""] + [f"{shift.name} ({shift.id})" for shift in shifts]
+        
+        return grade_options, group_options, shift_options   
+
+    def _get_educational_name(self, educational_id: int, educational_type: str) -> str:
+        """Obtiene el nombre de un grado, grupo o turno por su ID"""
+        from repositories.educational_repo import EducationalRepository
+        repo = EducationalRepository(self.db_connection)
+        
+        try:
+            if educational_type == 'grade':
+                grade = repo.get_grade_by_id(educational_id)
+                return grade.name if grade else ""
+            elif educational_type == 'group':
+                group = repo.get_group_by_id(educational_id)
+                return group.name if group else ""
+            elif educational_type == 'shift':
+                shift = repo.get_shift_by_id(educational_id)
+                return shift.name if shift else ""
+            return ""
+        except Exception:
+            return ""
