@@ -1,2 +1,6 @@
 /.venv
 /.vscode
+
+*.xlsx
+*.xlsx
+*.db
