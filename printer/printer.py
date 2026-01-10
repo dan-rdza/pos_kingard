@@ -132,12 +132,16 @@ class TicketPrinter:
         """
         Imprime un ticket con formato profesional.
         :param header: {"folio": str, "student": str, "enrollment": str}
-        :param items: [{"description": str, "qty": int, "unit_price": float, "tax_rate": float}]
+        :param items: [{"description": str, "qty": int, "unit_price": float, "tax_rate": float, "print_logo": bool}]
         :param totals: {"subtotal": float, "tax": float, "total": float}
         :param payment_method: str, nombre del método de pago
         :param business: {"name": str, "rfc": str, "address": str, "phone": str, "footer": str}
         """
         lines = b""
+
+        print_logo = all(item.get("print_logo", False) for item in items)
+        print(f"Print Logo: {print_logo}")
+
 
         # ---------- Logo ----------
         if print_logo:

@@ -223,6 +223,7 @@ class POSFrame(ctk.CTkFrame):
         sku = product["sku"] if isinstance(product, dict) else product.sku
         price = product["price"] if isinstance(product, dict) else product.price        
         found = False
+        print(f"Product: {product}")
         for item in self.cart:
             if item["sku"] == sku and item["price"] == price:
                 item["qty"] += 1
@@ -234,8 +235,11 @@ class POSFrame(ctk.CTkFrame):
                 "description": product["description"] if isinstance(product, dict) else product.description,
                 "price": product["price"] if isinstance(product, dict) else product.price,
                 "tax_rate": product["tax_rate"] if isinstance(product, dict) else product.tax_rate,
-                "qty": 1
+                "qty": 1,
+                "print_logo": product["print_logo"] if isinstance(product, dict) else product.print_logo,
             })
+
+            print(f"Cart: {self.cart}")
         self._refresh_cart()
 
     def _refresh_cart(self):
@@ -377,7 +381,7 @@ class POSFrame(ctk.CTkFrame):
         if messagebox.askyesno("Venta procesada", f"Venta procesada con el folio {folio} en {payment_method_name}.\n\n¿Imprimir ticket?"):
             printer = TicketPrinter()
             items = [
-                {"description": i["description"], "qty": i["qty"], "unit_price": i["price"], "tax_rate": i["tax_rate"]}
+                {"description": i["description"], "qty": i["qty"], "unit_price": i["price"], "tax_rate": i["tax_rate"], "print_logo": i["print_logo"]}
                 for i in self.cart
             ]
             totals = {"subtotal": subtotal, "tax": tax, "total": total}

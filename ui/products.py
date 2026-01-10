@@ -311,7 +311,7 @@ class ProductsFrame(ctk.CTkFrame):
         desc_e  = ctk.CTkEntry(form, textvariable=self.desc, height=40, placeholder_text="Descripción")
         price_e = ctk.CTkEntry(form, textvariable=self.price, height=40, placeholder_text="Precio (ej. 150.00)")
         cost_e  = ctk.CTkEntry(form, textvariable=self.cost, height=40, placeholder_text="Costo (opcional)")
-        unit_e  = ctk.CTkComboBox(form, values=["PZA","SERV","UNIDAD"], height=40, variable=self.unit)
+        unit_e  = ctk.CTkComboBox(form, values=["PZA","SERV","UNIDAD","PAQ"], height=40, variable=self.unit)
         kind_e  = ctk.CTkComboBox(form, values=["SERVICIO","PRODUCTO"], height=40, variable=self.kind)
         tax_e   = ctk.CTkComboBox(form, values=["0.00","0.08","0.16"], height=40, variable=self.tax)
         is_pos_shortcut_e = ctk.CTkCheckBox(form, text="📌 Mostrar en POS", variable=self.is_pos_shortcut)
